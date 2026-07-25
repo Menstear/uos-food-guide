@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Seoul City University Food Guide</title>
+    <meta
+      name="description"
+      content="A simple English food guide for restaurants around the University of Seoul."
+    >
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <nav class="topbar" aria-label="Page">
+        <a class="brand" href="#top" aria-label="Seoul City University Food Guide home">
+          UOS Food Guide
+        </a>
+        <a class="nav-link" href="#restaurants">Restaurant List</a>
+      </nav>
+
+      <section class="hero-content" id="top">
+        <p class="eyebrow">For international students and visitors</p>
+        <h1>Seoul City University Food Guide</h1>
+        <p class="hero-copy">
+          A practical English list of places to eat near the University of Seoul.
+          Add restaurants as you discover them, then share this page with one link.
+        </p>
+        <a class="primary-link" href="#restaurants">Browse the list</a>
+      </section>
+    </header>
+
+    <main>
+      <section class="intro" aria-label="Guide overview">
+        <div>
+          <span class="section-label">What this page tracks</span>
+          <h2>Useful details before someone walks over</h2>
+        </div>
+        <div class="detail-grid">
+          <article>
+            <h3>Food Type</h3>
+            <p>Korean, cafe, noodles, vegan-friendly, late-night, dessert, and more.</p>
+          </article>
+          <article>
+            <h3>Distance</h3>
+            <p>Walking time from the University of Seoul main gate or nearby landmarks.</p>
+          </article>
+          <article>
+            <h3>Foreigner-Friendly Notes</h3>
+            <p>English menu, card payment, solo dining, vegetarian options, and map links.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="restaurants" id="restaurants" aria-labelledby="restaurants-title">
+        <div class="section-heading">
+          <span class="section-label">Restaurant List</span>
+          <h2 id="restaurants-title">Places to add soon</h2>
+          <p>
+            The list is intentionally empty for now. Use the fields below as the
+            template for each restaurant entry.
+          </p>
+        </div>
+
+        <div class="empty-state">
+          <div class="empty-visual" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div>
+            <h3>No restaurants added yet</h3>
+            <p>
+              Start with one nearby place, add a Google Maps link, then keep expanding
+              the guide as recommendations come in.
+            </p>
+          </div>
+        </div>
+
+        <div class="template-card" aria-label="Restaurant entry template">
+          <h3>Entry Template</h3>
+          <dl>
+            <div>
+              <dt>Name</dt>
+              <dd>Restaurant name in English and Korean</dd>
+            </div>
+            <div>
+              <dt>Cuisine</dt>
+              <dd>Korean, Japanese, Chinese, cafe, dessert, vegan, etc.</dd>
+            </div>
+            <div>
+              <dt>Best For</dt>
+              <dd>Lunch, dinner, group meal, solo meal, study break, late night</dd>
+            </div>
+            <div>
+              <dt>Price Range</dt>
+              <dd>Approximate cost per person</dd>
+            </div>
+            <div>
+              <dt>Walking Time</dt>
+              <dd>Minutes from the University of Seoul</dd>
+            </div>
+            <div>
+              <dt>Foreigner-Friendly</dt>
+              <dd>English menu, photo menu, card payment, vegetarian options</dd>
+            </div>
+            <div>
+              <dt>Google Maps Link</dt>
+              <dd>Direct map link for navigation</dd>
+            </div>
+            <div>
+              <dt>Notes</dt>
+              <dd>What to order, busy hours, reservation tips, or useful phrases</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Made for visitors exploring food near the University of Seoul.</p>
+    </footer>
+    <script src="script.js"></script>
+  </body>
+</html>
