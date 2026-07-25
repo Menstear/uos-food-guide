@@ -73,7 +73,7 @@
         </div>
         <p class="registration-message" id="registration-message" role="status"></p>
 
-        <div id="restaurant-list" class="restaurant-grid" aria-live="polite"></div>
+        <div id="restaurant-groups" class="restaurant-groups" aria-live="polite"></div>
       </section>
     </main>
 
@@ -106,6 +106,15 @@
           <label>
             Address
             <input name="address" type="text" maxlength="160" required placeholder="Street address or nearby landmark">
+          </label>
+          <label>
+            Area
+            <select name="area" required>
+              <option value="">Choose an area</option>
+              <option value="main-gate">Main Gate</option>
+              <option value="back-gate">Back Gate</option>
+              <option value="hoegi-station">Near Hoegi Station</option>
+            </select>
           </label>
           <label>
             Cuisine

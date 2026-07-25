@@ -1,4 +1,4 @@
-const restaurantList = document.querySelector("#restaurant-list");
+const restaurantGroups = document.querySelector("#restaurant-groups");
 const restaurantCount = document.querySelector("#restaurant-count");
 const restaurantDialog = document.querySelector("#restaurant-dialog");
 const restaurantForm = document.querySelector("#restaurant-form");
@@ -15,6 +15,24 @@ const photoGalleryGrid = document.querySelector("#photo-gallery-grid");
 const savedRestaurantsKey = "uosFoodGuideSavedRestaurants";
 const maxPhotosPerRestaurant = 6;
 const maxPhotoDimension = 1200;
+const restaurantAreas = [
+  {
+    id: "main-gate",
+    label: "Main Gate",
+    description: "Closest to the University of Seoul main entrance.",
+  },
+  {
+    id: "back-gate",
+    label: "Back Gate",
+    description: "Around the residential side of campus behind the university.",
+  },
+  {
+    id: "hoegi-station",
+    label: "Near Hoegi Station",
+    description: "Places around Hoegi Station, a short trip from campus.",
+  },
+];
+const restaurantAreaIds = new Set(restaurantAreas.map((area) => area.id));
 const publishedRestaurants = Array.isArray(window.uosRestaurants) ? window.uosRestaurants : [];
 const savedRestaurants = loadSavedRestaurants();
 const restaurants = [...publishedRestaurants, ...savedRestaurants];
@@ -55,6 +73,10 @@ function normalizePhotos(photos) {
   return photos.filter((photo) => typeof photo === "string" && isSafeImageUrl(photo));
 }
 
+function normalizeArea(area) {
+  return restaurantAreaIds.has(area) ? area : "main-gate";
+}
+
 function loadSavedRestaurants() {
   try {
     const storedRestaurants = window.localStorage.getItem(savedRestaurantsKey);
@@ -69,6 +91,7 @@ function loadSavedRestaurants() {
       .map((restaurant) => ({
         ...restaurant,
         id: typeof restaurant.id === "string" ? restaurant.id : createRestaurantId(),
+        area: normalizeArea(restaurant.area),
         photos: normalizePhotos(restaurant.photos),
       }));
   } catch {
@@ -213,25 +236,50 @@ function createRestaurantCard(restaurant) {
 }
 
 function renderRestaurants() {
-  restaurantList.replaceChildren();
+  restaurantGroups.replaceChildren();
   restaurantCount.textContent = String(restaurants.length);
 
-  if (restaurants.length === 0) {
-    const emptyState = document.createElement("div");
-    emptyState.className = "restaurant-empty";
-    addTextElement(emptyState, "h3", "", "No restaurants added yet");
-    addTextElement(
-      emptyState,
-      "p",
-      "",
-      "The guide will grow as new recommendations are added.",
-    );
-    restaurantList.append(emptyState);
-    return;
-  }
+  restaurantAreas.forEach((area) => {
+    const areaSection = document.createElement("section");
+    areaSection.className = "restaurant-area";
+    areaSection.setAttribute("aria-labelledby", `${area.id}-title`);
 
-  restaurants.forEach((restaurant) => {
-    restaurantList.append(createRestaurantCard(restaurant));
+    const heading = document.createElement("div");
+    heading.className = "area-heading";
+    const headingCopy = document.createElement("div");
+    addTextElement(headingCopy, "p", "section-label", area.label);
+    const title = addTextElement(headingCopy, "h3", "", area.label);
+    title.id = `${area.id}-title`;
+    addTextElement(headingCopy, "p", "area-description", area.description);
+    heading.append(headingCopy);
+
+    const areaRestaurants = restaurants.filter(
+      (restaurant) => normalizeArea(restaurant.area) === area.id,
+    );
+    addTextElement(
+      heading,
+      "p",
+      "area-count",
+      `${areaRestaurants.length} place${areaRestaurants.length === 1 ? "" : "s"}`,
+    );
+    areaSection.append(heading);
+
+    const areaGrid = document.createElement("div");
+    areaGrid.className = "restaurant-grid";
+
+    if (areaRestaurants.length === 0) {
+      const emptyState = document.createElement("div");
+      emptyState.className = "area-empty";
+      addTextElement(emptyState, "p", "", "No restaurants added in this area yet.");
+      areaGrid.append(emptyState);
+    } else {
+      areaRestaurants.forEach((restaurant) => {
+        areaGrid.append(createRestaurantCard(restaurant));
+      });
+    }
+
+    areaSection.append(areaGrid);
+    restaurantGroups.append(areaSection);
   });
 }
 
@@ -348,6 +396,7 @@ async function handleRestaurantSubmission(event) {
     id: createRestaurantId(),
     name: String(formData.get("name") || "").trim(),
     address: String(formData.get("address") || "").trim(),
+    area: normalizeArea(String(formData.get("area") || "")),
     cuisine: String(formData.get("cuisine") || "").trim(),
     priceRange: String(formData.get("priceRange") || "").trim(),
     photos,
