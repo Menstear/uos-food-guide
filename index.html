@@ -55,71 +55,26 @@
       <section class="restaurants" id="restaurants" aria-labelledby="restaurants-title">
         <div class="section-heading">
           <span class="section-label">Restaurant List</span>
-          <h2 id="restaurants-title">Places to add soon</h2>
+          <h2 id="restaurants-title">Nearby places worth a visit</h2>
           <p>
-            The list is intentionally empty for now. Use the fields below as the
-            template for each restaurant entry.
+            Browse practical details before you go, including the walking time,
+            price range, and a direct Google Maps link.
           </p>
         </div>
 
-        <div class="empty-state">
-          <div class="empty-visual" aria-hidden="true">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <div>
-            <h3>No restaurants added yet</h3>
-            <p>
-              Start with one nearby place, add a Google Maps link, then keep expanding
-              the guide as recommendations come in.
-            </p>
-          </div>
+        <div class="restaurant-toolbar">
+          <p class="list-summary"><strong id="restaurant-count">0</strong> places in this guide</p>
+          <p>Information is curated for international students and visitors.</p>
         </div>
 
-        <div class="template-card" aria-label="Restaurant entry template">
-          <h3>Entry Template</h3>
-          <dl>
-            <div>
-              <dt>Name</dt>
-              <dd>Restaurant name in English and Korean</dd>
-            </div>
-            <div>
-              <dt>Cuisine</dt>
-              <dd>Korean, Japanese, Chinese, cafe, dessert, vegan, etc.</dd>
-            </div>
-            <div>
-              <dt>Best For</dt>
-              <dd>Lunch, dinner, group meal, solo meal, study break, late night</dd>
-            </div>
-            <div>
-              <dt>Price Range</dt>
-              <dd>Approximate cost per person</dd>
-            </div>
-            <div>
-              <dt>Walking Time</dt>
-              <dd>Minutes from the University of Seoul</dd>
-            </div>
-            <div>
-              <dt>Foreigner-Friendly</dt>
-              <dd>English menu, photo menu, card payment, vegetarian options</dd>
-            </div>
-            <div>
-              <dt>Google Maps Link</dt>
-              <dd>Direct map link for navigation</dd>
-            </div>
-            <div>
-              <dt>Notes</dt>
-              <dd>What to order, busy hours, reservation tips, or useful phrases</dd>
-            </div>
-          </dl>
-        </div>
+        <div id="restaurant-list" class="restaurant-grid" aria-live="polite"></div>
       </section>
     </main>
 
     <footer>
       <p>Made for visitors exploring food near the University of Seoul.</p>
     </footer>
+    <script src="restaurants.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

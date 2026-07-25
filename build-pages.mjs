@@ -8,6 +8,7 @@ const output = join(root, "pages-dist");
 const files = [
   "index.html",
   "styles.css",
+  "restaurants.js",
   "script.js",
   "assets/uos-food-guide-hero.svg",
 ];
