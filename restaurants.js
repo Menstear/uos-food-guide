@@ -2,6 +2,7 @@
 window.uosRestaurants = [
   // {
   //   name: "Restaurant Name (Korean name)",
+  //   address: "Street address or nearby landmark",
   //   cuisine: "Korean BBQ",
   //   bestFor: "Dinner with friends",
   //   priceRange: "KRW 12,000-20,000 per person",

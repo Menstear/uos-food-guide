@@ -203,7 +203,7 @@ footer {
 
 .restaurant-toolbar {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 18px;
   margin-bottom: 20px;
@@ -218,6 +218,11 @@ footer {
   color: var(--muted);
 }
 
+.toolbar-copy {
+  display: grid;
+  gap: 4px;
+}
+
 .restaurant-toolbar .list-summary {
   color: var(--moss);
   font-weight: 700;
@@ -226,6 +231,35 @@ footer {
 .restaurant-toolbar strong {
   color: var(--tomato);
   font-size: 1.2rem;
+}
+
+.add-restaurant-button,
+.form-submit,
+.form-cancel,
+.dialog-close {
+  border: 0;
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.add-restaurant-button,
+.form-submit {
+  min-height: 42px;
+  padding: 10px 16px;
+  background: var(--tomato);
+  color: var(--white);
+  box-shadow: 0 10px 20px rgba(201, 79, 54, 0.2);
+}
+
+.registration-message {
+  min-height: 1.55em;
+  margin: -4px 0 16px;
+  color: var(--moss);
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .restaurant-grid {
@@ -306,6 +340,100 @@ footer {
 .restaurant-empty p {
   margin-bottom: 0;
   color: var(--muted);
+}
+
+.restaurant-dialog {
+  width: min(620px, calc(100% - 28px));
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.restaurant-dialog::backdrop {
+  background: rgba(24, 33, 30, 0.72);
+  backdrop-filter: blur(5px);
+}
+
+.restaurant-form {
+  padding: clamp(24px, 5vw, 42px);
+  background: var(--paper);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.dialog-heading h2 {
+  margin-bottom: 0;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+}
+
+.dialog-close {
+  padding: 6px 0;
+  border-bottom: 2px solid var(--tomato);
+  background: transparent;
+  color: var(--moss);
+}
+
+.form-intro {
+  max-width: 490px;
+  margin: 22px 0 28px;
+  color: var(--muted);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 8px;
+  color: var(--moss);
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.form-grid input,
+.form-grid select {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: var(--white);
+  color: var(--ink);
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.form-grid input:focus,
+.form-grid select:focus {
+  outline: 3px solid rgba(201, 79, 54, 0.28);
+  outline-offset: 2px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.form-cancel {
+  min-height: 42px;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--moss);
 }
 
 .empty-state {
@@ -392,6 +520,7 @@ footer {
   .empty-state,
   .restaurant-grid,
   .restaurant-details,
+  .form-grid,
   dl {
     grid-template-columns: 1fr;
   }
@@ -417,6 +546,10 @@ footer {
     align-items: flex-start;
     flex-direction: column;
     gap: 6px;
+  }
+
+  .add-restaurant-button {
+    width: 100%;
   }
 }
 

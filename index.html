@@ -63,9 +63,15 @@
         </div>
 
         <div class="restaurant-toolbar">
-          <p class="list-summary"><strong id="restaurant-count">0</strong> places in this guide</p>
-          <p>Information is curated for international students and visitors.</p>
+          <div class="toolbar-copy">
+            <p class="list-summary"><strong id="restaurant-count">0</strong> places in this guide</p>
+            <p>Information is curated for international students and visitors.</p>
+          </div>
+          <button class="add-restaurant-button" id="open-restaurant-dialog" type="button">
+            Add a restaurant
+          </button>
         </div>
+        <p class="registration-message" id="registration-message" role="status"></p>
 
         <div id="restaurant-list" class="restaurant-grid" aria-live="polite"></div>
       </section>
@@ -74,6 +80,58 @@
     <footer>
       <p>Made for visitors exploring food near the University of Seoul.</p>
     </footer>
+
+    <dialog class="restaurant-dialog" id="restaurant-dialog" aria-labelledby="restaurant-dialog-title">
+      <form class="restaurant-form" id="restaurant-form">
+        <div class="dialog-heading">
+          <div>
+            <span class="section-label">Add A Place</span>
+            <h2 id="restaurant-dialog-title">Share a restaurant</h2>
+          </div>
+          <button class="dialog-close" id="close-restaurant-dialog" type="button" aria-label="Close form">
+            Close
+          </button>
+        </div>
+
+        <p class="form-intro">
+          Add a place to your personal list on this device. Public recommendations are
+          managed separately.
+        </p>
+
+        <div class="form-grid">
+          <label>
+            Restaurant name
+            <input name="name" type="text" maxlength="100" required placeholder="e.g. Myeongdong Kyoja">
+          </label>
+          <label>
+            Address
+            <input name="address" type="text" maxlength="160" required placeholder="Street address or nearby landmark">
+          </label>
+          <label>
+            Cuisine
+            <select name="cuisine" required>
+              <option value="">Choose a cuisine</option>
+              <option value="Korean">Korean</option>
+              <option value="Chinese">Chinese</option>
+              <option value="Japanese">Japanese</option>
+              <option value="Western">Western</option>
+              <option value="Cafe & Dessert">Cafe & Dessert</option>
+              <option value="Other">Other</option>
+            </select>
+          </label>
+          <label>
+            Approx. price per person
+            <input name="priceRange" type="text" maxlength="80" required placeholder="e.g. KRW 10,000-15,000">
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="form-cancel" id="cancel-restaurant-dialog" type="button">Cancel</button>
+          <button class="form-submit" type="submit">Add to my list</button>
+        </div>
+      </form>
+    </dialog>
+
     <script src="restaurants.js"></script>
     <script src="script.js"></script>
   </body>

@@ -1,8 +1,18 @@
 const restaurantList = document.querySelector("#restaurant-list");
 const restaurantCount = document.querySelector("#restaurant-count");
-const restaurants = Array.isArray(window.uosRestaurants) ? window.uosRestaurants : [];
+const restaurantDialog = document.querySelector("#restaurant-dialog");
+const restaurantForm = document.querySelector("#restaurant-form");
+const openRestaurantDialog = document.querySelector("#open-restaurant-dialog");
+const closeRestaurantDialog = document.querySelector("#close-restaurant-dialog");
+const cancelRestaurantDialog = document.querySelector("#cancel-restaurant-dialog");
+const registrationMessage = document.querySelector("#registration-message");
+const savedRestaurantsKey = "uosFoodGuideSavedRestaurants";
+const publishedRestaurants = Array.isArray(window.uosRestaurants) ? window.uosRestaurants : [];
+const savedRestaurants = loadSavedRestaurants();
+const restaurants = [...publishedRestaurants, ...savedRestaurants];
 
 const restaurantFields = [
+  ["Address", "address"],
   ["Best for", "bestFor"],
   ["Price range", "priceRange"],
   ["Walking time", "walkingTime"],
@@ -11,10 +21,34 @@ const restaurantFields = [
 
 function addTextElement(parent, tagName, className, text) {
   const element = document.createElement(tagName);
-  element.className = className;
+
+  if (className) {
+    element.className = className;
+  }
+
   element.textContent = text;
   parent.append(element);
   return element;
+}
+
+function loadSavedRestaurants() {
+  try {
+    const storedRestaurants = window.localStorage.getItem(savedRestaurantsKey);
+    const parsedRestaurants = JSON.parse(storedRestaurants || "[]");
+
+    return Array.isArray(parsedRestaurants) ? parsedRestaurants : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRestaurants() {
+  try {
+    window.localStorage.setItem(savedRestaurantsKey, JSON.stringify(savedRestaurants));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isSafeMapUrl(value) {
@@ -69,6 +103,7 @@ function createRestaurantCard(restaurant) {
 }
 
 function renderRestaurants() {
+  restaurantList.replaceChildren();
   restaurantCount.textContent = String(restaurants.length);
 
   if (restaurants.length === 0) {
@@ -89,5 +124,51 @@ function renderRestaurants() {
     restaurantList.append(createRestaurantCard(restaurant));
   });
 }
+
+function openDialog() {
+  if (typeof restaurantDialog.showModal === "function") {
+    restaurantDialog.showModal();
+    return;
+  }
+
+  restaurantDialog.setAttribute("open", "");
+}
+
+function closeDialog() {
+  if (typeof restaurantDialog.close === "function") {
+    restaurantDialog.close();
+    return;
+  }
+
+  restaurantDialog.removeAttribute("open");
+}
+
+function handleRestaurantSubmission(event) {
+  event.preventDefault();
+
+  const formData = new FormData(restaurantForm);
+  const restaurant = {
+    name: String(formData.get("name") || "").trim(),
+    address: String(formData.get("address") || "").trim(),
+    cuisine: String(formData.get("cuisine") || "").trim(),
+    priceRange: String(formData.get("priceRange") || "").trim(),
+  };
+
+  savedRestaurants.push(restaurant);
+  restaurants.push(restaurant);
+  const saved = saveRestaurants();
+
+  renderRestaurants();
+  restaurantForm.reset();
+  closeDialog();
+  registrationMessage.textContent = saved
+    ? `${restaurant.name} was added to this browser.`
+    : `${restaurant.name} was added for this visit only.`;
+}
+
+openRestaurantDialog.addEventListener("click", openDialog);
+closeRestaurantDialog.addEventListener("click", closeDialog);
+cancelRestaurantDialog.addEventListener("click", closeDialog);
+restaurantForm.addEventListener("submit", handleRestaurantSubmission);
 
 renderRestaurants();
