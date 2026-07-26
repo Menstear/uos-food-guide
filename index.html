@@ -8,7 +8,7 @@
       name="description"
       content="A simple English food guide for restaurants around the University of Seoul."
     >
-    <link rel="stylesheet" href="styles.css?v=20260726-edit-table-check">
+    <link rel="stylesheet" href="styles.css?v=20260726-thumbnail-compat">
   </head>
   <body>
     <header class="hero">
@@ -137,6 +137,11 @@
             <input id="restaurant-photos" name="photos" type="file" accept="image/*" multiple required>
             <span class="form-photo-help" id="restaurant-photo-help">Choose up to 6 photos. The first one becomes the cover photo.</span>
           </label>
+          <div class="thumbnail-field" id="restaurant-thumbnail-field" hidden>
+            <span>Card thumbnail</span>
+            <div class="thumbnail-picker" id="restaurant-thumbnail-picker" role="group" aria-label="Choose the card thumbnail"></div>
+            <span class="form-photo-help" id="restaurant-thumbnail-help">Choose the photo shown on the restaurant card.</span>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -164,6 +169,6 @@
 
     <script src="restaurants.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20260726-edit-table-check"></script>
+    <script src="script.js?v=20260726-thumbnail-compat"></script>
   </body>
 </html>

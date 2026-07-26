@@ -3,6 +3,9 @@ const restaurantCount = document.querySelector("#restaurant-count");
 const restaurantDialog = document.querySelector("#restaurant-dialog");
 const restaurantForm = document.querySelector("#restaurant-form");
 const restaurantPhotoInput = document.querySelector("#restaurant-photos");
+const restaurantThumbnailField = document.querySelector("#restaurant-thumbnail-field");
+const restaurantThumbnailPicker = document.querySelector("#restaurant-thumbnail-picker");
+const restaurantThumbnailHelp = document.querySelector("#restaurant-thumbnail-help");
 const openRestaurantDialog = document.querySelector("#open-restaurant-dialog");
 const closeRestaurantDialog = document.querySelector("#close-restaurant-dialog");
 const cancelRestaurantDialog = document.querySelector("#cancel-restaurant-dialog");
@@ -46,6 +49,8 @@ const restaurants = [];
 const restaurantRailScrollbars = new WeakMap();
 let editingRestaurant = null;
 let restaurantRailResizeObserver = null;
+let selectedThumbnailCandidate = null;
+let thumbnailPreviewUrls = [];
 
 const restaurantFields = [
   ["Address", "address"],
@@ -88,6 +93,8 @@ function normalizeArea(area) {
 }
 
 function normalizeRestaurant(restaurant) {
+  const thumbnailPhoto = restaurant.thumbnailPhoto || restaurant.thumbnail_photo || "";
+
   return {
     ...restaurant,
     id: typeof restaurant.id === "string" ? restaurant.id : createRestaurantId(),
@@ -98,6 +105,10 @@ function normalizeRestaurant(restaurant) {
     foreignerFriendly: restaurant.foreignerFriendly || restaurant.foreigner_friendly || "",
     mapLink: restaurant.mapLink || restaurant.map_link || "",
     mapLinkLabel: restaurant.mapLinkLabel || restaurant.map_link_label || "",
+    thumbnailPhoto:
+      typeof thumbnailPhoto === "string" && isSafeImageUrl(thumbnailPhoto)
+        ? thumbnailPhoto
+        : "",
     photos: normalizePhotos(restaurant.photos),
   };
 }
@@ -274,7 +285,9 @@ function createPhotoHeader(restaurant) {
 
   const photo = document.createElement("img");
   photo.className = "restaurant-photo";
-  photo.src = photos[0];
+  photo.src = photos.includes(restaurant.thumbnailPhoto)
+    ? restaurant.thumbnailPhoto
+    : photos[0];
   photo.alt = `${restaurant.name || "Restaurant"} representative photo`;
   photoButton.append(photo);
 
@@ -333,6 +346,17 @@ function createRestaurantCard(restaurant) {
     mapLink.textContent = "Open in Naver Map";
     actions.append(mapLink);
   }
+
+  const thumbnailButton = document.createElement("button");
+  thumbnailButton.className = "edit-restaurant-button";
+  thumbnailButton.type = "button";
+  thumbnailButton.textContent = "Set thumbnail";
+  thumbnailButton.setAttribute(
+    "aria-label",
+    `Set thumbnail for ${restaurant.name || "this restaurant"}`,
+  );
+  thumbnailButton.addEventListener("click", () => openEditRestaurantForm(restaurant));
+  actions.append(thumbnailButton);
 
   const editButton = document.createElement("button");
   editButton.className = "edit-restaurant-button";
@@ -641,6 +665,7 @@ async function uploadCommunityPhotos(restaurantId, photos) {
 
 async function submitCommunityRestaurant(restaurant) {
   const photoUrls = await uploadCommunityPhotos(restaurant.id, restaurant.photos);
+  const thumbnailPhoto = resolveThumbnailPhoto(restaurant, photoUrls);
   const response = await fetch(`${sharedConfig.url}/rest/v1/restaurants`, {
     method: "POST",
     headers: getSharedHeaders({
@@ -657,6 +682,7 @@ async function submitCommunityRestaurant(restaurant) {
       map_link: getNaverMapLink(restaurant),
       map_link_label: "Open in Naver Map",
       notes: restaurant.notes,
+      thumbnail_photo: thumbnailPhoto,
       photos: photoUrls,
     }),
   });
@@ -668,7 +694,7 @@ async function submitCommunityRestaurant(restaurant) {
 
 async function ensureRestaurantEditSuggestionsTableExists() {
   const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`);
-  endpoint.searchParams.set("select", "id");
+  endpoint.searchParams.set("select", "thumbnail_photo");
   endpoint.searchParams.set("limit", "1");
   const response = await fetch(endpoint, { headers: getSharedHeaders() });
 
@@ -679,7 +705,15 @@ async function ensureRestaurantEditSuggestionsTableExists() {
   }
 
   if (!response.ok) {
-    throw await getResponseError(response, "Restaurant edits could not be checked.");
+    const error = await getResponseError(response, "Restaurant edits could not be checked.");
+
+    if (error.message.includes("thumbnail_photo")) {
+      throw new Error(
+        "Thumbnail edits are not enabled yet. Ask the site owner to run the latest Supabase setup SQL.",
+      );
+    }
+
+    throw error;
   }
 }
 
@@ -690,6 +724,7 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
   const photoUrls = restaurant.photos.length > 0
     ? await uploadCommunityPhotos(suggestionId, restaurant.photos)
     : [];
+  const thumbnailPhoto = resolveThumbnailPhoto(restaurant, photoUrls);
   const response = await fetch(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`, {
     method: "POST",
     headers: getSharedHeaders({
@@ -705,6 +740,7 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
       cuisine: restaurant.cuisine,
       price_range: restaurant.priceRange,
       notes: restaurant.notes,
+      thumbnail_photo: thumbnailPhoto || null,
       photos: photoUrls,
     }),
   });
@@ -717,33 +753,179 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
   }
 }
 
+function isMissingThumbnailColumnError(error) {
+  return error instanceof Error && error.message.includes("thumbnail_photo");
+}
+
+async function fetchSharedRestaurantRows(includeThumbnailPhoto) {
+  const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurants`);
+  const selectedColumns = [
+    "id",
+    "name",
+    "address",
+    "area",
+    "cuisine",
+    "best_for",
+    "price_range",
+    "walking_time",
+    "foreigner_friendly",
+    "map_link",
+    "map_link_label",
+    "notes",
+    "photos",
+    "created_at",
+  ];
+
+  if (includeThumbnailPhoto) {
+    selectedColumns.splice(selectedColumns.indexOf("photos"), 0, "thumbnail_photo");
+  }
+
+  endpoint.searchParams.set("select", selectedColumns.join(","));
+  endpoint.searchParams.set("status", "eq.approved");
+  endpoint.searchParams.set("order", "created_at.asc");
+
+  const response = await fetch(endpoint, { headers: getSharedHeaders() });
+
+  if (!response.ok) {
+    throw await getResponseError(response, "The shared restaurant list could not be loaded.");
+  }
+
+  return response.json();
+}
+
 async function loadSharedRestaurants() {
   if (!sharedConfig.enabled) {
     configureNewRestaurantForm();
     return;
   }
 
-  const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurants`);
-  endpoint.searchParams.set(
-    "select",
-    "id,name,address,area,cuisine,best_for,price_range,walking_time,foreigner_friendly,map_link,map_link_label,notes,photos,created_at",
-  );
-  endpoint.searchParams.set("status", "eq.approved");
-  endpoint.searchParams.set("order", "created_at.asc");
-
   try {
-    const response = await fetch(endpoint, { headers: getSharedHeaders() });
-
-    if (!response.ok) {
-      throw await getResponseError(response, "The shared restaurant list could not be loaded.");
-    }
-
-    const rows = await response.json();
+    const rows = await fetchSharedRestaurantRows(true);
     sharedRestaurants.splice(0, sharedRestaurants.length, ...rows.map(normalizeRestaurant));
     refreshRestaurants();
   } catch (error) {
+    if (isMissingThumbnailColumnError(error)) {
+      try {
+        const rows = await fetchSharedRestaurantRows(false);
+        sharedRestaurants.splice(0, sharedRestaurants.length, ...rows.map(normalizeRestaurant));
+        refreshRestaurants();
+        registrationMessage.textContent = "Run the latest Supabase setup SQL to enable saved card thumbnails.";
+        return;
+      } catch (fallbackError) {
+        registrationMessage.textContent = `${fallbackError.message} You can still save places on this browser.`;
+        return;
+      }
+    }
+
     registrationMessage.textContent = `${error.message} You can still save places on this browser.`;
   }
+}
+
+function clearThumbnailPicker() {
+  thumbnailPreviewUrls.forEach((previewUrl) => URL.revokeObjectURL(previewUrl));
+  thumbnailPreviewUrls = [];
+  selectedThumbnailCandidate = null;
+  restaurantThumbnailPicker.replaceChildren();
+  restaurantThumbnailField.hidden = true;
+}
+
+function renderThumbnailPicker(candidates, helpText) {
+  restaurantThumbnailPicker.replaceChildren();
+  restaurantThumbnailField.hidden = candidates.length === 0;
+  restaurantThumbnailHelp.textContent = helpText;
+
+  candidates.forEach((candidate, index) => {
+    const option = document.createElement("button");
+    option.className = "thumbnail-option";
+    option.type = "button";
+    option.setAttribute("aria-pressed", String(candidate === selectedThumbnailCandidate));
+    option.setAttribute("aria-label", `Use photo ${index + 1} as the card thumbnail`);
+
+    const image = document.createElement("img");
+    image.src = candidate.previewUrl;
+    image.alt = `Thumbnail option ${index + 1}`;
+    option.append(image);
+
+    const label = document.createElement("span");
+    label.textContent = `Photo ${index + 1}`;
+    option.append(label);
+    option.addEventListener("click", () => {
+      selectedThumbnailCandidate = candidate;
+      renderThumbnailPicker(candidates, helpText);
+    });
+    restaurantThumbnailPicker.append(option);
+  });
+}
+
+function showExistingThumbnailPicker(restaurant) {
+  clearThumbnailPicker();
+
+  const photos = normalizePhotos(restaurant.photos);
+
+  if (photos.length === 0) {
+    return;
+  }
+
+  const candidates = photos.map((photo) => ({
+    type: "existing",
+    photo,
+    previewUrl: photo,
+  }));
+  selectedThumbnailCandidate = candidates.find(
+    (candidate) => candidate.photo === restaurant.thumbnailPhoto,
+  ) || candidates[0];
+  renderThumbnailPicker(candidates, "Choose the photo shown on this restaurant card.");
+}
+
+function showNewThumbnailPicker(fileList) {
+  clearThumbnailPicker();
+
+  const files = Array.from(fileList).filter((file) => file.type.startsWith("image/"));
+
+  if (files.length === 0) {
+    if (editingRestaurant) {
+      showExistingThumbnailPicker(editingRestaurant);
+    }
+
+    return;
+  }
+
+  const candidates = files.map((file, index) => {
+    const previewUrl = URL.createObjectURL(file);
+    thumbnailPreviewUrls.push(previewUrl);
+    return {
+      type: "new",
+      index,
+      previewUrl,
+    };
+  });
+  selectedThumbnailCandidate = candidates[0];
+  renderThumbnailPicker(candidates, "Choose the photo shown on this restaurant card after upload.");
+}
+
+function getThumbnailSelection() {
+  return {
+    thumbnailPhoto:
+      selectedThumbnailCandidate?.type === "existing"
+        ? selectedThumbnailCandidate.photo
+        : "",
+    thumbnailIndex:
+      selectedThumbnailCandidate?.type === "new"
+        ? selectedThumbnailCandidate.index
+        : 0,
+  };
+}
+
+function resolveThumbnailPhoto(restaurant, uploadedPhotos) {
+  if (uploadedPhotos.length > 0) {
+    const thumbnailIndex = Math.min(
+      Math.max(Number(restaurant.thumbnailIndex) || 0, 0),
+      uploadedPhotos.length - 1,
+    );
+    return uploadedPhotos[thumbnailIndex];
+  }
+
+  return isSafeImageUrl(restaurant.thumbnailPhoto) ? restaurant.thumbnailPhoto : "";
 }
 
 function openRestaurantForm() {
@@ -775,6 +957,7 @@ function getFormSubmitLabel() {
 function configureNewRestaurantForm() {
   editingRestaurant = null;
   restaurantForm.reset();
+  clearThumbnailPicker();
   restaurantDialogLabel.textContent = "Add A Place";
   restaurantDialogTitle.textContent = "Share a restaurant";
   formIntro.textContent = sharedConfig.enabled
@@ -794,6 +977,7 @@ function openEditRestaurantForm(restaurant) {
   setFormFieldValue("cuisine", restaurant.cuisine);
   setFormFieldValue("priceRange", restaurant.priceRange);
   setFormFieldValue("notes", restaurant.notes);
+  showExistingThumbnailPicker(restaurant);
   restaurantDialogLabel.textContent = "Edit A Place";
   restaurantDialogTitle.textContent = `Edit ${restaurant.name || "restaurant"}`;
   formIntro.textContent = sharedConfig.enabled
@@ -811,13 +995,15 @@ function setSubmitting(isSubmitting) {
 }
 
 function saveEditedRestaurant(targetRestaurant, restaurant) {
+  const updatedPhotos = restaurant.photos.length > 0 ? restaurant.photos : targetRestaurant.photos;
   const updatedRestaurant = normalizeRestaurant({
     ...targetRestaurant,
     ...restaurant,
     id: targetRestaurant.id,
     mapLink: "",
     mapLinkLabel: "",
-    photos: restaurant.photos.length > 0 ? restaurant.photos : targetRestaurant.photos,
+    thumbnailPhoto: resolveThumbnailPhoto(restaurant, updatedPhotos),
+    photos: updatedPhotos,
   });
   const savedIndex = savedRestaurants.findIndex(
     (savedRestaurant) => savedRestaurant.id === targetRestaurant.id,
@@ -871,6 +1057,7 @@ async function handleRestaurantSubmission(event) {
     priceRange: String(formData.get("priceRange") || "").trim(),
     notes: String(formData.get("notes") || "").trim(),
     photos,
+    ...getThumbnailSelection(),
   };
 
   setSubmitting(true);
@@ -923,6 +1110,9 @@ openRestaurantDialog.addEventListener("click", openRestaurantForm);
 closeRestaurantDialog.addEventListener("click", closeRestaurantForm);
 cancelRestaurantDialog.addEventListener("click", closeRestaurantForm);
 closePhotoGallery.addEventListener("click", () => closeDialog(photoGalleryDialog));
+restaurantPhotoInput.addEventListener("change", () => {
+  showNewThumbnailPicker(restaurantPhotoInput.files);
+});
 restaurantForm.addEventListener("submit", handleRestaurantSubmission);
 
 refreshRestaurants();
