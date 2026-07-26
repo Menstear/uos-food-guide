@@ -23,6 +23,9 @@ const photoGalleryGrid = document.querySelector("#photo-gallery-grid");
 const photoLightboxDialog = document.querySelector("#photo-lightbox-dialog");
 const closePhotoLightbox = document.querySelector("#close-photo-lightbox");
 const photoLightboxImage = document.querySelector("#photo-lightbox-image");
+const previousPhotoLightbox = document.querySelector("#previous-photo-lightbox");
+const nextPhotoLightbox = document.querySelector("#next-photo-lightbox");
+const photoLightboxCounter = document.querySelector("#photo-lightbox-counter");
 const savedRestaurantsKey = "uosFoodGuideSavedRestaurants";
 const maxPhotosPerRestaurant = 6;
 const maxPhotoDimension = 1200;
@@ -61,6 +64,9 @@ let editingRestaurant = null;
 let restaurantRailResizeObserver = null;
 let selectedThumbnailCandidate = null;
 let thumbnailPreviewUrls = [];
+let lightboxPhotos = [];
+let lightboxRestaurantName = "Restaurant";
+let lightboxPhotoIndex = 0;
 
 const restaurantFields = [
   ["Address", "address"],
@@ -558,16 +564,37 @@ function openPhotoGallery(restaurant) {
     photo.src = photoUrl;
     photo.alt = `${restaurant.name || "Restaurant"} photo ${index + 1}`;
     photoButton.append(photo);
-    photoButton.addEventListener("click", () => openPhotoLightbox(photoUrl, photo.alt));
+    photoButton.addEventListener("click", () => openPhotoLightbox(photos, index, restaurant.name));
     photoGalleryGrid.append(photoButton);
   });
 
   openDialog(photoGalleryDialog);
 }
 
-function openPhotoLightbox(photoUrl, altText) {
-  photoLightboxImage.src = photoUrl;
-  photoLightboxImage.alt = altText;
+function updatePhotoLightbox() {
+  const photoUrl = lightboxPhotos[lightboxPhotoIndex];
+
+  photoLightboxImage.src = photoUrl || "";
+  photoLightboxImage.alt = `${lightboxRestaurantName} photo ${lightboxPhotoIndex + 1}`;
+  photoLightboxCounter.textContent = `${lightboxPhotoIndex + 1} / ${lightboxPhotos.length}`;
+  previousPhotoLightbox.disabled = lightboxPhotos.length < 2;
+  nextPhotoLightbox.disabled = lightboxPhotos.length < 2;
+}
+
+function changeLightboxPhoto(direction) {
+  if (lightboxPhotos.length < 2) {
+    return;
+  }
+
+  lightboxPhotoIndex = (lightboxPhotoIndex + direction + lightboxPhotos.length) % lightboxPhotos.length;
+  updatePhotoLightbox();
+}
+
+function openPhotoLightbox(photos, index, restaurantName) {
+  lightboxPhotos = photos;
+  lightboxPhotoIndex = index;
+  lightboxRestaurantName = restaurantName || "Restaurant";
+  updatePhotoLightbox();
   openDialog(photoLightboxDialog);
 }
 
@@ -1105,6 +1132,21 @@ closeRestaurantDialog.addEventListener("click", closeRestaurantForm);
 cancelRestaurantDialog.addEventListener("click", closeRestaurantForm);
 closePhotoGallery.addEventListener("click", () => closeDialog(photoGalleryDialog));
 closePhotoLightbox.addEventListener("click", () => closeDialog(photoLightboxDialog));
+previousPhotoLightbox.addEventListener("click", () => changeLightboxPhoto(-1));
+nextPhotoLightbox.addEventListener("click", () => changeLightboxPhoto(1));
+document.addEventListener("keydown", (event) => {
+  if (!photoLightboxDialog.open) {
+    return;
+  }
+
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    changeLightboxPhoto(-1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    changeLightboxPhoto(1);
+  }
+});
 restaurantPhotoInput.addEventListener("change", () => {
   showNewThumbnailPicker(restaurantPhotoInput.files);
 });

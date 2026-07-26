@@ -8,7 +8,7 @@
       name="description"
       content="A simple English food guide for restaurants around the University of Seoul."
     >
-    <link rel="stylesheet" href="styles.css?v=20260727-photo-lightbox">
+    <link rel="stylesheet" href="styles.css?v=20260727-lightbox-navigation">
   </head>
   <body>
     <header class="hero">
@@ -144,11 +144,20 @@
           Close
         </button>
         <img class="photo-lightbox-image" id="photo-lightbox-image" alt="">
+        <nav class="photo-lightbox-navigation" aria-label="Photo navigation">
+          <button class="photo-lightbox-nav-button" id="previous-photo-lightbox" type="button" aria-label="Show previous photo">
+            Prev
+          </button>
+          <button class="photo-lightbox-nav-button" id="next-photo-lightbox" type="button" aria-label="Show next photo">
+            Next
+          </button>
+        </nav>
+        <p class="photo-lightbox-counter" id="photo-lightbox-counter" aria-live="polite"></p>
       </div>
     </dialog>
 
     <script src="restaurants.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20260727-photo-lightbox"></script>
+    <script src="script.js?v=20260727-lightbox-navigation"></script>
   </body>
 </html>
