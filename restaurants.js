@@ -15,6 +15,7 @@ window.uosRestaurants = [
   //   notes: "What to order, busy times, or useful tips.",
   // },
   {
+    id: "b1c8e079-20bb-4d49-a94b-704f75a0375c",
     name: "Isaac Toast - University of Seoul Branch (이삭토스트 서울시립대점)",
     address: "1F, 160 Seoulsirip-daero, Dongdaemun-gu, Seoul",
     area: "main-gate",

@@ -7,6 +7,8 @@ const openRestaurantDialog = document.querySelector("#open-restaurant-dialog");
 const closeRestaurantDialog = document.querySelector("#close-restaurant-dialog");
 const cancelRestaurantDialog = document.querySelector("#cancel-restaurant-dialog");
 const registrationMessage = document.querySelector("#registration-message");
+const formIntro = document.querySelector(".form-intro");
+const formSubmitButton = restaurantForm.querySelector(".form-submit");
 const photoGalleryDialog = document.querySelector("#photo-gallery-dialog");
 const closePhotoGallery = document.querySelector("#close-photo-gallery");
 const photoGalleryTitle = document.querySelector("#photo-gallery-title");
@@ -33,9 +35,11 @@ const restaurantAreas = [
   },
 ];
 const restaurantAreaIds = new Set(restaurantAreas.map((area) => area.id));
+const sharedConfig = getSharedConfig();
 const publishedRestaurants = Array.isArray(window.uosRestaurants) ? window.uosRestaurants : [];
+const sharedRestaurants = [];
 const savedRestaurants = loadSavedRestaurants();
-const restaurants = [...publishedRestaurants, ...savedRestaurants];
+const restaurants = [];
 
 const restaurantFields = [
   ["Address", "address"],
@@ -77,6 +81,21 @@ function normalizeArea(area) {
   return restaurantAreaIds.has(area) ? area : "main-gate";
 }
 
+function normalizeRestaurant(restaurant) {
+  return {
+    ...restaurant,
+    id: typeof restaurant.id === "string" ? restaurant.id : createRestaurantId(),
+    area: normalizeArea(restaurant.area),
+    bestFor: restaurant.bestFor || restaurant.best_for || "",
+    priceRange: restaurant.priceRange || restaurant.price_range || "",
+    walkingTime: restaurant.walkingTime || restaurant.walking_time || "",
+    foreignerFriendly: restaurant.foreignerFriendly || restaurant.foreigner_friendly || "",
+    mapLink: restaurant.mapLink || restaurant.map_link || "",
+    mapLinkLabel: restaurant.mapLinkLabel || restaurant.map_link_label || "",
+    photos: normalizePhotos(restaurant.photos),
+  };
+}
+
 function loadSavedRestaurants() {
   try {
     const storedRestaurants = window.localStorage.getItem(savedRestaurantsKey);
@@ -88,12 +107,7 @@ function loadSavedRestaurants() {
 
     return parsedRestaurants
       .filter((restaurant) => restaurant && typeof restaurant === "object")
-      .map((restaurant) => ({
-        ...restaurant,
-        id: typeof restaurant.id === "string" ? restaurant.id : createRestaurantId(),
-        area: normalizeArea(restaurant.area),
-        photos: normalizePhotos(restaurant.photos),
-      }));
+      .map(normalizeRestaurant);
   } catch {
     return [];
   }
@@ -123,6 +137,56 @@ function isSafeImageUrl(value) {
   }
 
   return isSafeMapUrl(value);
+}
+
+function getSharedConfig() {
+  const config = window.uosSupabaseConfig || {};
+  const url = String(config.url || "").replace(/\/+$/, "");
+  const publishableKey = String(config.publishableKey || "").trim();
+  const bucket = String(config.bucket || "restaurant-photos").trim();
+
+  return {
+    url,
+    publishableKey,
+    bucket,
+    enabled: isSafeMapUrl(url) && publishableKey.length > 0 && /^[a-z0-9-]+$/i.test(bucket),
+  };
+}
+
+function getSharedHeaders(extraHeaders = {}) {
+  return {
+    apikey: sharedConfig.publishableKey,
+    Authorization: `Bearer ${sharedConfig.publishableKey}`,
+    ...extraHeaders,
+  };
+}
+
+async function getResponseError(response, fallbackMessage) {
+  try {
+    const body = await response.json();
+    const message = body.message || body.error || body.error_description || body.hint;
+
+    if (typeof message === "string" && message) {
+      return new Error(message);
+    }
+  } catch {
+    // Use the plain-language fallback when Supabase returns no JSON error body.
+  }
+
+  return new Error(fallbackMessage);
+}
+
+function refreshRestaurants() {
+  const restaurantsById = new Map();
+  const fallbackRestaurants = sharedConfig.enabled ? [] : publishedRestaurants;
+
+  [...fallbackRestaurants, ...sharedRestaurants, ...savedRestaurants].forEach((restaurant) => {
+    const normalizedRestaurant = normalizeRestaurant(restaurant);
+    restaurantsById.set(normalizedRestaurant.id, normalizedRestaurant);
+  });
+
+  restaurants.splice(0, restaurants.length, ...restaurantsById.values());
+  renderRestaurants();
 }
 
 function openDialog(dialog) {
@@ -208,12 +272,10 @@ function createRestaurantCard(restaurant) {
   const actions = document.createElement("div");
   actions.className = "restaurant-card-actions";
 
-  const mapUrl = restaurant.mapLink || restaurant.googleMapsLink;
-
-  if (isSafeMapUrl(mapUrl)) {
+  if (isSafeMapUrl(restaurant.mapLink || restaurant.googleMapsLink)) {
     const mapLink = document.createElement("a");
     mapLink.className = "map-link";
-    mapLink.href = mapUrl;
+    mapLink.href = restaurant.mapLink || restaurant.googleMapsLink;
     mapLink.target = "_blank";
     mapLink.rel = "noreferrer";
     mapLink.textContent = restaurant.mapLinkLabel || "View on Google Maps";
@@ -315,16 +377,14 @@ function deleteRestaurant(restaurant) {
   const savedIndex = savedRestaurants.findIndex(
     (savedRestaurant) => savedRestaurant.id === restaurant.id,
   );
-  const restaurantIndex = restaurants.indexOf(restaurant);
 
-  if (savedIndex === -1 || restaurantIndex === -1) {
+  if (savedIndex === -1) {
     return;
   }
 
   savedRestaurants.splice(savedIndex, 1);
-  restaurants.splice(restaurantIndex, 1);
   saveRestaurants();
-  renderRestaurants();
+  refreshRestaurants();
   registrationMessage.textContent = `${restaurant.name || "The restaurant"} was deleted from this browser.`;
 }
 
@@ -373,12 +433,118 @@ async function preparePhotos(fileList) {
   return Promise.all(files.map((file) => compressPhoto(file)));
 }
 
+async function dataUrlToBlob(dataUrl) {
+  const response = await fetch(dataUrl);
+
+  if (!response.ok) {
+    throw new Error("The photo could not be prepared for upload.");
+  }
+
+  return response.blob();
+}
+
+function getPublicPhotoUrl(path) {
+  const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+  return `${sharedConfig.url}/storage/v1/object/public/${encodeURIComponent(sharedConfig.bucket)}/${encodedPath}`;
+}
+
+async function uploadCommunityPhotos(restaurantId, photos) {
+  const uploadUrls = [];
+
+  for (const [index, photo] of photos.entries()) {
+    const path = `submissions/${restaurantId}/${index + 1}.jpg`;
+    const photoBlob = await dataUrlToBlob(photo);
+    const response = await fetch(
+      `${sharedConfig.url}/storage/v1/object/${encodeURIComponent(sharedConfig.bucket)}/${path}`,
+      {
+        method: "POST",
+        headers: getSharedHeaders({
+          "Content-Type": "image/jpeg",
+          "x-upsert": "false",
+        }),
+        body: photoBlob,
+      },
+    );
+
+    if (!response.ok) {
+      throw await getResponseError(response, "The photos could not be uploaded.");
+    }
+
+    uploadUrls.push(getPublicPhotoUrl(path));
+  }
+
+  return uploadUrls;
+}
+
+async function submitCommunityRestaurant(restaurant) {
+  const photoUrls = await uploadCommunityPhotos(restaurant.id, restaurant.photos);
+  const response = await fetch(`${sharedConfig.url}/rest/v1/restaurants`, {
+    method: "POST",
+    headers: getSharedHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    }),
+    body: JSON.stringify({
+      id: restaurant.id,
+      name: restaurant.name,
+      address: restaurant.address,
+      area: restaurant.area,
+      cuisine: restaurant.cuisine,
+      price_range: restaurant.priceRange,
+      photos: photoUrls,
+    }),
+  });
+
+  if (!response.ok) {
+    throw await getResponseError(response, "The restaurant could not be submitted.");
+  }
+}
+
+async function loadSharedRestaurants() {
+  if (!sharedConfig.enabled) {
+    formIntro.textContent = "This guide is not connected to shared submissions yet. Places added here are saved only on this browser.";
+    formSubmitButton.textContent = "Add to my list";
+    return;
+  }
+
+  const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurants`);
+  endpoint.searchParams.set(
+    "select",
+    "id,name,address,area,cuisine,best_for,price_range,walking_time,foreigner_friendly,map_link,map_link_label,notes,photos,created_at",
+  );
+  endpoint.searchParams.set("status", "eq.approved");
+  endpoint.searchParams.set("order", "created_at.asc");
+
+  try {
+    const response = await fetch(endpoint, { headers: getSharedHeaders() });
+
+    if (!response.ok) {
+      throw await getResponseError(response, "The shared restaurant list could not be loaded.");
+    }
+
+    const rows = await response.json();
+    sharedRestaurants.splice(0, sharedRestaurants.length, ...rows.map(normalizeRestaurant));
+    refreshRestaurants();
+  } catch (error) {
+    registrationMessage.textContent = `${error.message} You can still save places on this browser.`;
+  }
+}
+
 function openRestaurantForm() {
   openDialog(restaurantDialog);
 }
 
 function closeRestaurantForm() {
   closeDialog(restaurantDialog);
+}
+
+function setSubmitting(isSubmitting) {
+  formSubmitButton.disabled = isSubmitting;
+  formSubmitButton.textContent = isSubmitting
+    ? "Submitting..."
+    : sharedConfig.enabled
+      ? "Submit for review"
+      : "Add to my list";
 }
 
 async function handleRestaurantSubmission(event) {
@@ -404,19 +570,34 @@ async function handleRestaurantSubmission(event) {
     photos,
   };
 
-  savedRestaurants.push(restaurant);
+  setSubmitting(true);
 
-  if (!saveRestaurants()) {
-    savedRestaurants.pop();
-    registrationMessage.textContent = "The photos are too large to save in this browser. Try fewer or smaller photos.";
-    return;
+  try {
+    if (sharedConfig.enabled) {
+      await submitCommunityRestaurant(restaurant);
+      restaurantForm.reset();
+      closeRestaurantForm();
+      registrationMessage.textContent = `${restaurant.name} was submitted for review. It will appear after approval.`;
+      return;
+    }
+
+    savedRestaurants.push(restaurant);
+
+    if (!saveRestaurants()) {
+      savedRestaurants.pop();
+      registrationMessage.textContent = "The photos are too large to save in this browser. Try fewer or smaller photos.";
+      return;
+    }
+
+    refreshRestaurants();
+    restaurantForm.reset();
+    closeRestaurantForm();
+    registrationMessage.textContent = `${restaurant.name} was added to this browser.`;
+  } catch (error) {
+    registrationMessage.textContent = `${error.message} Please try again.`;
+  } finally {
+    setSubmitting(false);
   }
-
-  restaurants.push(restaurant);
-  renderRestaurants();
-  restaurantForm.reset();
-  closeRestaurantForm();
-  registrationMessage.textContent = `${restaurant.name} was added to this browser.`;
 }
 
 openRestaurantDialog.addEventListener("click", openRestaurantForm);
@@ -425,4 +606,5 @@ cancelRestaurantDialog.addEventListener("click", closeRestaurantForm);
 closePhotoGallery.addEventListener("click", () => closeDialog(photoGalleryDialog));
 restaurantForm.addEventListener("submit", handleRestaurantSubmission);
 
-renderRestaurants();
+refreshRestaurants();
+loadSharedRestaurants();
