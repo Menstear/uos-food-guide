@@ -131,6 +131,26 @@ function isSafeMapUrl(value) {
   }
 }
 
+function getNaverMapLink(restaurant) {
+  const existingLink = restaurant.mapLink || restaurant.googleMapsLink || "";
+
+  try {
+    const existingUrl = new URL(existingLink);
+
+    if (existingUrl.hostname === "map.naver.com" || existingUrl.hostname.endsWith(".naver.com")) {
+      return existingUrl.toString();
+    }
+  } catch {
+    // Build a Naver Map search URL when no valid Naver Map place link is stored.
+  }
+
+  const query = [restaurant.name, restaurant.address]
+    .filter((value) => typeof value === "string" && value.trim())
+    .join(" ");
+
+  return query ? `https://map.naver.com/p/search/${encodeURIComponent(query)}` : "";
+}
+
 function isSafeImageUrl(value) {
   if (value.startsWith("data:image/")) {
     return true;
@@ -272,13 +292,15 @@ function createRestaurantCard(restaurant) {
   const actions = document.createElement("div");
   actions.className = "restaurant-card-actions";
 
-  if (isSafeMapUrl(restaurant.mapLink || restaurant.googleMapsLink)) {
+  const naverMapLink = getNaverMapLink(restaurant);
+
+  if (isSafeMapUrl(naverMapLink)) {
     const mapLink = document.createElement("a");
     mapLink.className = "map-link";
-    mapLink.href = restaurant.mapLink || restaurant.googleMapsLink;
+    mapLink.href = naverMapLink;
     mapLink.target = "_blank";
     mapLink.rel = "noreferrer";
-    mapLink.textContent = restaurant.mapLinkLabel || "View on Google Maps";
+    mapLink.textContent = "Open in Naver Map";
     actions.append(mapLink);
   }
 
@@ -491,6 +513,8 @@ async function submitCommunityRestaurant(restaurant) {
       area: restaurant.area,
       cuisine: restaurant.cuisine,
       price_range: restaurant.priceRange,
+      map_link: getNaverMapLink(restaurant),
+      map_link_label: "Open in Naver Map",
       photos: photoUrls,
     }),
   });
