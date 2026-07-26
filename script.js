@@ -208,13 +208,15 @@ function createRestaurantCard(restaurant) {
   const actions = document.createElement("div");
   actions.className = "restaurant-card-actions";
 
-  if (isSafeMapUrl(restaurant.googleMapsLink)) {
+  const mapUrl = restaurant.mapLink || restaurant.googleMapsLink;
+
+  if (isSafeMapUrl(mapUrl)) {
     const mapLink = document.createElement("a");
     mapLink.className = "map-link";
-    mapLink.href = restaurant.googleMapsLink;
+    mapLink.href = mapUrl;
     mapLink.target = "_blank";
     mapLink.rel = "noreferrer";
-    mapLink.textContent = "View on Google Maps";
+    mapLink.textContent = restaurant.mapLinkLabel || "View on Google Maps";
     actions.append(mapLink);
   }
 
