@@ -47,6 +47,10 @@ const sharedRestaurants = [];
 const savedRestaurants = loadSavedRestaurants();
 const restaurants = [];
 const restaurantRailScrollbars = new WeakMap();
+const knownNaverPlaceLinks = {
+  // The current community record for Isaac Toast is the UOS branch.
+  "c90a3841-9865-4317-9093-bb35d8a350df": "https://map.naver.com/p/entry/place/1245357059",
+};
 let editingRestaurant = null;
 let restaurantRailResizeObserver = null;
 let selectedThumbnailCandidate = null;
@@ -155,6 +159,12 @@ function getNaverMapLink(restaurant) {
     }
   } catch {
     // Build a Naver Map search URL when no valid direct Naver Map place link is stored.
+  }
+
+  const knownPlaceLink = knownNaverPlaceLinks[restaurant.id];
+
+  if (knownPlaceLink) {
+    return knownPlaceLink;
   }
 
   const name = String(restaurant.name || "").trim();
