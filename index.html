@@ -8,7 +8,7 @@
       name="description"
       content="A simple English food guide for restaurants around the University of Seoul."
     >
-    <link rel="stylesheet" href="styles.css?v=20260727-hero-photo-v2">
+    <link rel="stylesheet" href="styles.css?v=20260727-photo-lightbox">
   </head>
   <body>
     <header class="hero">
@@ -138,8 +138,17 @@
       </div>
     </dialog>
 
+    <dialog class="photo-lightbox-dialog" id="photo-lightbox-dialog" aria-label="Expanded restaurant photo">
+      <div class="photo-lightbox-content">
+        <button class="photo-lightbox-close" id="close-photo-lightbox" type="button" aria-label="Close expanded photo">
+          Close
+        </button>
+        <img class="photo-lightbox-image" id="photo-lightbox-image" alt="">
+      </div>
+    </dialog>
+
     <script src="restaurants.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20260727-area-labels"></script>
+    <script src="script.js?v=20260727-photo-lightbox"></script>
   </body>
 </html>

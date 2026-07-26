@@ -20,6 +20,9 @@ const closePhotoGallery = document.querySelector("#close-photo-gallery");
 const photoGalleryTitle = document.querySelector("#photo-gallery-title");
 const photoGallerySummary = document.querySelector("#photo-gallery-summary");
 const photoGalleryGrid = document.querySelector("#photo-gallery-grid");
+const photoLightboxDialog = document.querySelector("#photo-lightbox-dialog");
+const closePhotoLightbox = document.querySelector("#close-photo-lightbox");
+const photoLightboxImage = document.querySelector("#photo-lightbox-image");
 const savedRestaurantsKey = "uosFoodGuideSavedRestaurants";
 const maxPhotosPerRestaurant = 6;
 const maxPhotoDimension = 1200;
@@ -545,14 +548,27 @@ function openPhotoGallery(restaurant) {
   photoGallerySummary.textContent = `${photos.length} photo${photos.length === 1 ? "" : "s"} in this gallery.`;
 
   photos.forEach((photoUrl, index) => {
+    const photoButton = document.createElement("button");
+    photoButton.className = "gallery-photo-button";
+    photoButton.type = "button";
+    photoButton.setAttribute("aria-label", `Expand photo ${index + 1} for ${restaurant.name || "this restaurant"}`);
+
     const photo = document.createElement("img");
     photo.className = "gallery-photo";
     photo.src = photoUrl;
     photo.alt = `${restaurant.name || "Restaurant"} photo ${index + 1}`;
-    photoGalleryGrid.append(photo);
+    photoButton.append(photo);
+    photoButton.addEventListener("click", () => openPhotoLightbox(photoUrl, photo.alt));
+    photoGalleryGrid.append(photoButton);
   });
 
   openDialog(photoGalleryDialog);
+}
+
+function openPhotoLightbox(photoUrl, altText) {
+  photoLightboxImage.src = photoUrl;
+  photoLightboxImage.alt = altText;
+  openDialog(photoLightboxDialog);
 }
 
 function deleteRestaurant(restaurant) {
@@ -1088,6 +1104,7 @@ openRestaurantDialog.addEventListener("click", openRestaurantForm);
 closeRestaurantDialog.addEventListener("click", closeRestaurantForm);
 cancelRestaurantDialog.addEventListener("click", closeRestaurantForm);
 closePhotoGallery.addEventListener("click", () => closeDialog(photoGalleryDialog));
+closePhotoLightbox.addEventListener("click", () => closeDialog(photoLightboxDialog));
 restaurantPhotoInput.addEventListener("change", () => {
   showNewThumbnailPicker(restaurantPhotoInput.files);
 });
