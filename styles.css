@@ -553,8 +553,7 @@ footer {
   flex-wrap: wrap;
   justify-content: flex-start;
   gap: 10px;
-  margin-top: auto;
-  padding-top: 10px;
+  padding: 10px 14px 14px;
 }
 
 .delete-restaurant-button {

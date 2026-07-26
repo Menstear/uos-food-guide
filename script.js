@@ -363,11 +363,13 @@ function createRestaurantCard(restaurant) {
     actions.append(deleteButton);
   }
 
+  card.append(content);
+
   if (actions.childElementCount > 0) {
-    content.append(actions);
+    // Keep card actions visible even when the detail section needs to scroll.
+    card.append(actions);
   }
 
-  card.append(content);
   return card;
 }
 
