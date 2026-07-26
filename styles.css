@@ -262,19 +262,24 @@ footer {
   gap: 14px;
   height: 430px;
   width: 100%;
-  overflow-x: auto;
+  overflow-x: scroll;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   padding: 4px 4px 14px;
   scroll-padding-inline: 4px;
   scroll-snap-type: x proximity;
   scrollbar-color: var(--tomato) transparent;
+  scrollbar-gutter: stable;
   scrollbar-width: thin;
   touch-action: pan-x;
 }
 
 .restaurant-grid::-webkit-scrollbar {
-  height: 8px;
+  height: 10px;
+}
+
+.restaurant-grid::-webkit-scrollbar-track {
+  background: rgba(217, 208, 194, 0.58);
 }
 
 .restaurant-grid::-webkit-scrollbar-thumb {
@@ -443,9 +448,11 @@ footer {
 .restaurant-name {
   display: -webkit-box;
   flex-shrink: 0;
+  height: 2.24em;
   margin-bottom: 10px;
   overflow: hidden;
   font-size: 1.12rem;
+  line-height: 1.12;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -503,7 +510,8 @@ footer {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  justify-content: flex-start;
   gap: 10px;
   margin-top: auto;
   padding-top: 10px;
@@ -519,6 +527,26 @@ footer {
   font-size: 0.85rem;
   font-weight: 800;
   cursor: pointer;
+}
+
+.edit-restaurant-button {
+  padding: 0 0 4px;
+  border: 0;
+  border-bottom: 2px solid var(--line);
+  background: transparent;
+  color: var(--moss);
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.edit-restaurant-button:hover,
+.edit-restaurant-button:focus-visible,
+.delete-restaurant-button:hover,
+.delete-restaurant-button:focus-visible {
+  border-color: var(--tomato);
+  color: var(--tomato);
 }
 
 .restaurant-empty {
@@ -612,7 +640,8 @@ footer {
 }
 
 .form-grid input,
-.form-grid select {
+.form-grid select,
+.form-grid textarea {
   width: 100%;
   min-height: 46px;
   padding: 10px 12px;
@@ -626,13 +655,23 @@ footer {
 }
 
 .form-grid input:focus,
-.form-grid select:focus {
+.form-grid select:focus,
+.form-grid textarea:focus {
   outline: 3px solid rgba(201, 79, 54, 0.28);
   outline-offset: 2px;
 }
 
 .photo-field {
   grid-column: 1 / -1;
+}
+
+.notes-field {
+  grid-column: 1 / -1;
+}
+
+.form-grid textarea {
+  min-height: 92px;
+  resize: vertical;
 }
 
 .form-grid input[type="file"] {

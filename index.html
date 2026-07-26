@@ -8,7 +8,7 @@
       name="description"
       content="A simple English food guide for restaurants around the University of Seoul."
     >
-    <link rel="stylesheet" href="styles.css?v=20260726-wheel-scroll">
+    <link rel="stylesheet" href="styles.css?v=20260726-edit-suggestions">
   </head>
   <body>
     <header class="hero">
@@ -81,7 +81,7 @@
       <form class="restaurant-form" id="restaurant-form">
         <div class="dialog-heading">
           <div>
-            <span class="section-label">Add A Place</span>
+            <span class="section-label" id="restaurant-dialog-label">Add A Place</span>
             <h2 id="restaurant-dialog-title">Share a restaurant</h2>
           </div>
           <button class="dialog-close" id="close-restaurant-dialog" type="button" aria-label="Close form">
@@ -89,7 +89,7 @@
           </button>
         </div>
 
-        <p class="form-intro">
+        <p class="form-intro" id="restaurant-form-intro">
           Share a place and photos with the community. New submissions are
           reviewed before they appear in the public guide.
         </p>
@@ -128,10 +128,14 @@
             Approx. price per person
             <input name="priceRange" type="text" maxlength="80" required placeholder="e.g. KRW 10,000-15,000">
           </label>
+          <label class="notes-field">
+            Notes
+            <textarea name="notes" maxlength="600" placeholder="Optional: useful details for visitors"></textarea>
+          </label>
           <label class="photo-field">
             Restaurant photos
             <input id="restaurant-photos" name="photos" type="file" accept="image/*" multiple required>
-            <span class="form-photo-help">Choose up to 6 photos. The first one becomes the cover photo.</span>
+            <span class="form-photo-help" id="restaurant-photo-help">Choose up to 6 photos. The first one becomes the cover photo.</span>
           </label>
         </div>
 
@@ -160,6 +164,6 @@
 
     <script src="restaurants.js"></script>
     <script src="supabase-config.js"></script>
-    <script src="script.js?v=20260726-wheel-scroll"></script>
+    <script src="script.js?v=20260726-edit-suggestions"></script>
   </body>
 </html>

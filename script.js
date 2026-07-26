@@ -7,7 +7,10 @@ const openRestaurantDialog = document.querySelector("#open-restaurant-dialog");
 const closeRestaurantDialog = document.querySelector("#close-restaurant-dialog");
 const cancelRestaurantDialog = document.querySelector("#cancel-restaurant-dialog");
 const registrationMessage = document.querySelector("#registration-message");
-const formIntro = document.querySelector(".form-intro");
+const restaurantDialogLabel = document.querySelector("#restaurant-dialog-label");
+const restaurantDialogTitle = document.querySelector("#restaurant-dialog-title");
+const formIntro = document.querySelector("#restaurant-form-intro");
+const restaurantPhotoHelp = document.querySelector("#restaurant-photo-help");
 const formSubmitButton = restaurantForm.querySelector(".form-submit");
 const photoGalleryDialog = document.querySelector("#photo-gallery-dialog");
 const closePhotoGallery = document.querySelector("#close-photo-gallery");
@@ -40,6 +43,7 @@ const publishedRestaurants = Array.isArray(window.uosRestaurants) ? window.uosRe
 const sharedRestaurants = [];
 const savedRestaurants = loadSavedRestaurants();
 const restaurants = [];
+let editingRestaurant = null;
 
 const restaurantFields = [
   ["Address", "address"],
@@ -328,6 +332,14 @@ function createRestaurantCard(restaurant) {
     actions.append(mapLink);
   }
 
+  const editButton = document.createElement("button");
+  editButton.className = "edit-restaurant-button";
+  editButton.type = "button";
+  editButton.textContent = sharedConfig.enabled ? "Suggest edit" : "Edit";
+  editButton.setAttribute("aria-label", `Edit ${restaurant.name || "this restaurant"}`);
+  editButton.addEventListener("click", () => openEditRestaurantForm(restaurant));
+  actions.append(editButton);
+
   if (savedRestaurants.some((savedRestaurant) => savedRestaurant.id === restaurant.id)) {
     const deleteButton = document.createElement("button");
     deleteButton.className = "delete-restaurant-button";
@@ -599,6 +611,7 @@ async function submitCommunityRestaurant(restaurant) {
       price_range: restaurant.priceRange,
       map_link: getNaverMapLink(restaurant),
       map_link_label: "Open in Naver Map",
+      notes: restaurant.notes,
       photos: photoUrls,
     }),
   });
@@ -608,10 +621,41 @@ async function submitCommunityRestaurant(restaurant) {
   }
 }
 
+async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
+  const suggestionId = createRestaurantId();
+  const photoUrls = restaurant.photos.length > 0
+    ? await uploadCommunityPhotos(suggestionId, restaurant.photos)
+    : [];
+  const response = await fetch(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`, {
+    method: "POST",
+    headers: getSharedHeaders({
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    }),
+    body: JSON.stringify({
+      id: suggestionId,
+      target_restaurant_id: targetRestaurant.id,
+      name: restaurant.name,
+      address: restaurant.address,
+      area: restaurant.area,
+      cuisine: restaurant.cuisine,
+      price_range: restaurant.priceRange,
+      notes: restaurant.notes,
+      photos: photoUrls,
+    }),
+  });
+
+  if (!response.ok) {
+    throw await getResponseError(
+      response,
+      "The edit could not be submitted. Ask the site owner to run the latest Supabase setup SQL.",
+    );
+  }
+}
+
 async function loadSharedRestaurants() {
   if (!sharedConfig.enabled) {
-    formIntro.textContent = "This guide is not connected to shared submissions yet. Places added here are saved only on this browser.";
-    formSubmitButton.textContent = "Add to my list";
+    configureNewRestaurantForm();
     return;
   }
 
@@ -639,29 +683,115 @@ async function loadSharedRestaurants() {
 }
 
 function openRestaurantForm() {
+  configureNewRestaurantForm();
   openDialog(restaurantDialog);
 }
 
 function closeRestaurantForm() {
   closeDialog(restaurantDialog);
+  configureNewRestaurantForm();
+}
+
+function setFormFieldValue(name, value) {
+  const field = restaurantForm.elements.namedItem(name);
+
+  if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
+    field.value = value || "";
+  }
+}
+
+function getFormSubmitLabel() {
+  if (editingRestaurant) {
+    return sharedConfig.enabled ? "Submit edit for review" : "Save changes";
+  }
+
+  return sharedConfig.enabled ? "Submit for review" : "Add to my list";
+}
+
+function configureNewRestaurantForm() {
+  editingRestaurant = null;
+  restaurantForm.reset();
+  restaurantDialogLabel.textContent = "Add A Place";
+  restaurantDialogTitle.textContent = "Share a restaurant";
+  formIntro.textContent = sharedConfig.enabled
+    ? "Share a place and photos with the community. New submissions are reviewed before they appear in the public guide."
+    : "This guide is not connected to shared submissions yet. Places added here are saved only on this browser.";
+  restaurantPhotoInput.required = true;
+  restaurantPhotoHelp.textContent = "Choose up to 6 photos. The first one becomes the cover photo.";
+  formSubmitButton.textContent = getFormSubmitLabel();
+}
+
+function openEditRestaurantForm(restaurant) {
+  editingRestaurant = restaurant;
+  restaurantForm.reset();
+  setFormFieldValue("name", restaurant.name);
+  setFormFieldValue("address", restaurant.address);
+  setFormFieldValue("area", restaurant.area);
+  setFormFieldValue("cuisine", restaurant.cuisine);
+  setFormFieldValue("priceRange", restaurant.priceRange);
+  setFormFieldValue("notes", restaurant.notes);
+  restaurantDialogLabel.textContent = "Edit A Place";
+  restaurantDialogTitle.textContent = `Edit ${restaurant.name || "restaurant"}`;
+  formIntro.textContent = sharedConfig.enabled
+    ? "Submit a correction for review. It will update the public guide after approval."
+    : "Save a correction to this browser's copy of the guide.";
+  restaurantPhotoInput.required = false;
+  restaurantPhotoHelp.textContent = "Optional: choose up to 6 replacement photos. Leave blank to keep the current photos.";
+  formSubmitButton.textContent = getFormSubmitLabel();
+  openDialog(restaurantDialog);
 }
 
 function setSubmitting(isSubmitting) {
   formSubmitButton.disabled = isSubmitting;
-  formSubmitButton.textContent = isSubmitting
-    ? "Submitting..."
-    : sharedConfig.enabled
-      ? "Submit for review"
-      : "Add to my list";
+  formSubmitButton.textContent = isSubmitting ? "Submitting..." : getFormSubmitLabel();
+}
+
+function saveEditedRestaurant(targetRestaurant, restaurant) {
+  const updatedRestaurant = normalizeRestaurant({
+    ...targetRestaurant,
+    ...restaurant,
+    id: targetRestaurant.id,
+    mapLink: "",
+    mapLinkLabel: "",
+    photos: restaurant.photos.length > 0 ? restaurant.photos : targetRestaurant.photos,
+  });
+  const savedIndex = savedRestaurants.findIndex(
+    (savedRestaurant) => savedRestaurant.id === targetRestaurant.id,
+  );
+
+  if (savedIndex === -1) {
+    savedRestaurants.push(updatedRestaurant);
+  } else {
+    savedRestaurants.splice(savedIndex, 1, updatedRestaurant);
+  }
+
+  if (saveRestaurants()) {
+    refreshRestaurants();
+    return true;
+  }
+
+  if (savedIndex === -1) {
+    savedRestaurants.pop();
+  } else {
+    savedRestaurants.splice(savedIndex, 1, targetRestaurant);
+  }
+
+  return false;
 }
 
 async function handleRestaurantSubmission(event) {
   event.preventDefault();
 
-  let photos;
+  const targetRestaurant = editingRestaurant;
+  const isEditing = Boolean(targetRestaurant);
+  let photos = [];
 
   try {
-    photos = await preparePhotos(restaurantPhotoInput.files);
+    if (restaurantPhotoInput.files.length > 0) {
+      photos = await preparePhotos(restaurantPhotoInput.files);
+    } else if (!isEditing) {
+      throw new Error("Choose at least one image file.");
+    }
   } catch (error) {
     registrationMessage.textContent = error.message;
     return;
@@ -675,6 +805,7 @@ async function handleRestaurantSubmission(event) {
     area: normalizeArea(String(formData.get("area") || "")),
     cuisine: String(formData.get("cuisine") || "").trim(),
     priceRange: String(formData.get("priceRange") || "").trim(),
+    notes: String(formData.get("notes") || "").trim(),
     photos,
   };
 
@@ -682,10 +813,27 @@ async function handleRestaurantSubmission(event) {
 
   try {
     if (sharedConfig.enabled) {
+      if (targetRestaurant) {
+        await submitRestaurantEditSuggestion(targetRestaurant, restaurant);
+        closeRestaurantForm();
+        registrationMessage.textContent = `Your edit for ${restaurant.name} was submitted for review.`;
+        return;
+      }
+
       await submitCommunityRestaurant(restaurant);
-      restaurantForm.reset();
       closeRestaurantForm();
       registrationMessage.textContent = `${restaurant.name} was submitted for review. It will appear after approval.`;
+      return;
+    }
+
+    if (targetRestaurant) {
+      if (!saveEditedRestaurant(targetRestaurant, restaurant)) {
+        registrationMessage.textContent = "The changes are too large to save in this browser. Try fewer or smaller photos.";
+        return;
+      }
+
+      closeRestaurantForm();
+      registrationMessage.textContent = `${restaurant.name} was updated in this browser.`;
       return;
     }
 
@@ -698,7 +846,6 @@ async function handleRestaurantSubmission(event) {
     }
 
     refreshRestaurants();
-    restaurantForm.reset();
     closeRestaurantForm();
     registrationMessage.textContent = `${restaurant.name} was added to this browser.`;
   } catch (error) {
