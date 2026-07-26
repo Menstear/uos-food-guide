@@ -361,21 +361,22 @@ function renderRestaurants() {
     const title = addTextElement(headingCopy, "h3", "", area.label);
     title.id = `${area.id}-title`;
     addTextElement(headingCopy, "p", "area-description", area.description);
-    heading.append(headingCopy);
 
     const areaRestaurants = restaurants.filter(
       (restaurant) => normalizeArea(restaurant.area) === area.id,
     );
+    const areaGrid = document.createElement("div");
+    areaGrid.className = "restaurant-grid";
+
+    const areaMeta = document.createElement("div");
+    areaMeta.className = "area-meta";
     addTextElement(
-      heading,
+      areaMeta,
       "p",
       "area-count",
       `${areaRestaurants.length} place${areaRestaurants.length === 1 ? "" : "s"}`,
     );
-    areaSection.append(heading);
-
-    const areaGrid = document.createElement("div");
-    areaGrid.className = "restaurant-grid";
+    heading.append(headingCopy, areaMeta);
 
     if (areaRestaurants.length === 0) {
       const emptyState = document.createElement("div");
@@ -388,7 +389,36 @@ function renderRestaurants() {
       });
     }
 
-    areaSection.append(areaGrid);
+    if (areaRestaurants.length > 0) {
+      const controls = document.createElement("div");
+      controls.className = "area-scroll-controls";
+
+      const previousButton = document.createElement("button");
+      previousButton.className = "area-scroll-button";
+      previousButton.type = "button";
+      previousButton.textContent = "Prev";
+      previousButton.setAttribute("aria-label", `Show previous ${area.label} restaurants`);
+
+      const nextButton = document.createElement("button");
+      nextButton.className = "area-scroll-button";
+      nextButton.type = "button";
+      nextButton.textContent = "Next";
+      nextButton.setAttribute("aria-label", `Show more ${area.label} restaurants`);
+
+      const scrollCards = (direction) => {
+        areaGrid.scrollBy({
+          left: direction * Math.max(areaGrid.clientWidth * 0.82, 240),
+          behavior: "smooth",
+        });
+      };
+
+      previousButton.addEventListener("click", () => scrollCards(-1));
+      nextButton.addEventListener("click", () => scrollCards(1));
+      controls.append(previousButton, nextButton);
+      areaMeta.append(controls);
+    }
+
+    areaSection.append(heading, areaGrid);
     restaurantGroups.append(areaSection);
   });
 }
