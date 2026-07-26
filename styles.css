@@ -518,6 +518,11 @@ footer {
   -webkit-line-clamp: 2;
 }
 
+.restaurant-detail-address dd {
+  min-height: 4.4em;
+  -webkit-line-clamp: 4;
+}
+
 .restaurant-notes {
   display: -webkit-box;
   flex-shrink: 0;

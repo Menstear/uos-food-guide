@@ -319,6 +319,7 @@ function createRestaurantCard(restaurant) {
     }
 
     const row = document.createElement("div");
+    row.className = `restaurant-detail-${key}`;
     addTextElement(row, "dt", "", label);
     addTextElement(row, "dd", "", value);
     details.append(row);
