@@ -27,16 +27,19 @@ const restaurantAreas = [
   {
     id: "main-gate",
     label: "Main Gate",
+    title: "정문",
     description: "Closest to the University of Seoul main entrance.",
   },
   {
     id: "back-gate",
     label: "Back Gate",
+    title: "후문",
     description: "Around the residential side of campus behind the university.",
   },
   {
     id: "hoegi-station",
     label: "Near Hoegi Station",
+    title: "회기역 근처",
     description: "Places around Hoegi Station, a short trip from campus.",
   },
 ];
@@ -415,7 +418,7 @@ function renderRestaurants() {
     heading.className = "area-heading";
     const headingCopy = document.createElement("div");
     addTextElement(headingCopy, "p", "section-label", area.label);
-    const title = addTextElement(headingCopy, "h3", "", area.label);
+    const title = addTextElement(headingCopy, "h3", "", area.title || area.label);
     title.id = `${area.id}-title`;
     addTextElement(headingCopy, "p", "area-description", area.description);
 
