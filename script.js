@@ -93,8 +93,6 @@ function normalizeArea(area) {
 }
 
 function normalizeRestaurant(restaurant) {
-  const thumbnailPhoto = restaurant.thumbnailPhoto || restaurant.thumbnail_photo || "";
-
   return {
     ...restaurant,
     id: typeof restaurant.id === "string" ? restaurant.id : createRestaurantId(),
@@ -105,10 +103,6 @@ function normalizeRestaurant(restaurant) {
     foreignerFriendly: restaurant.foreignerFriendly || restaurant.foreigner_friendly || "",
     mapLink: restaurant.mapLink || restaurant.map_link || "",
     mapLinkLabel: restaurant.mapLinkLabel || restaurant.map_link_label || "",
-    thumbnailPhoto:
-      typeof thumbnailPhoto === "string" && isSafeImageUrl(thumbnailPhoto)
-        ? thumbnailPhoto
-        : "",
     photos: normalizePhotos(restaurant.photos),
   };
 }
@@ -285,9 +279,7 @@ function createPhotoHeader(restaurant) {
 
   const photo = document.createElement("img");
   photo.className = "restaurant-photo";
-  photo.src = photos.includes(restaurant.thumbnailPhoto)
-    ? restaurant.thumbnailPhoto
-    : photos[0];
+  photo.src = photos[0];
   photo.alt = `${restaurant.name || "Restaurant"} representative photo`;
   photoButton.append(photo);
 
@@ -347,21 +339,10 @@ function createRestaurantCard(restaurant) {
     actions.append(mapLink);
   }
 
-  const thumbnailButton = document.createElement("button");
-  thumbnailButton.className = "edit-restaurant-button";
-  thumbnailButton.type = "button";
-  thumbnailButton.textContent = "Set thumbnail";
-  thumbnailButton.setAttribute(
-    "aria-label",
-    `Set thumbnail for ${restaurant.name || "this restaurant"}`,
-  );
-  thumbnailButton.addEventListener("click", () => openEditRestaurantForm(restaurant));
-  actions.append(thumbnailButton);
-
   const editButton = document.createElement("button");
   editButton.className = "edit-restaurant-button";
   editButton.type = "button";
-  editButton.textContent = sharedConfig.enabled ? "Suggest edit" : "Edit";
+  editButton.textContent = "Edit";
   editButton.setAttribute("aria-label", `Edit ${restaurant.name || "this restaurant"}`);
   editButton.addEventListener("click", () => openEditRestaurantForm(restaurant));
   actions.append(editButton);
@@ -664,8 +645,8 @@ async function uploadCommunityPhotos(restaurantId, photos) {
 }
 
 async function submitCommunityRestaurant(restaurant) {
-  const photoUrls = await uploadCommunityPhotos(restaurant.id, restaurant.photos);
-  const thumbnailPhoto = resolveThumbnailPhoto(restaurant, photoUrls);
+  const uploadedPhotoUrls = await uploadCommunityPhotos(restaurant.id, restaurant.photos);
+  const photoUrls = reorderPhotosForThumbnail(uploadedPhotoUrls, restaurant.thumbnailIndex);
   const response = await fetch(`${sharedConfig.url}/rest/v1/restaurants`, {
     method: "POST",
     headers: getSharedHeaders({
@@ -682,7 +663,6 @@ async function submitCommunityRestaurant(restaurant) {
       map_link: getNaverMapLink(restaurant),
       map_link_label: "Open in Naver Map",
       notes: restaurant.notes,
-      thumbnail_photo: thumbnailPhoto,
       photos: photoUrls,
     }),
   });
@@ -694,7 +674,7 @@ async function submitCommunityRestaurant(restaurant) {
 
 async function ensureRestaurantEditSuggestionsTableExists() {
   const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`);
-  endpoint.searchParams.set("select", "thumbnail_photo");
+  endpoint.searchParams.set("select", "id");
   endpoint.searchParams.set("limit", "1");
   const response = await fetch(endpoint, { headers: getSharedHeaders() });
 
@@ -705,15 +685,7 @@ async function ensureRestaurantEditSuggestionsTableExists() {
   }
 
   if (!response.ok) {
-    const error = await getResponseError(response, "Restaurant edits could not be checked.");
-
-    if (error.message.includes("thumbnail_photo")) {
-      throw new Error(
-        "Thumbnail edits are not enabled yet. Ask the site owner to run the latest Supabase setup SQL.",
-      );
-    }
-
-    throw error;
+    throw await getResponseError(response, "Restaurant edits could not be checked.");
   }
 }
 
@@ -721,10 +693,14 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
   await ensureRestaurantEditSuggestionsTableExists();
 
   const suggestionId = createRestaurantId();
-  const photoUrls = restaurant.photos.length > 0
+  const uploadedPhotoUrls = restaurant.photos.length > 0
     ? await uploadCommunityPhotos(suggestionId, restaurant.photos)
     : [];
-  const thumbnailPhoto = resolveThumbnailPhoto(restaurant, photoUrls);
+  const photoUrls = uploadedPhotoUrls.length > 0
+    ? reorderPhotosForThumbnail(uploadedPhotoUrls, restaurant.thumbnailIndex)
+    : restaurant.thumbnailSource === "existing"
+      ? reorderPhotosForThumbnail(targetRestaurant.photos, restaurant.thumbnailIndex)
+      : [];
   const response = await fetch(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`, {
     method: "POST",
     headers: getSharedHeaders({
@@ -740,7 +716,6 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
       cuisine: restaurant.cuisine,
       price_range: restaurant.priceRange,
       notes: restaurant.notes,
-      thumbnail_photo: thumbnailPhoto || null,
       photos: photoUrls,
     }),
   });
@@ -753,11 +728,7 @@ async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
   }
 }
 
-function isMissingThumbnailColumnError(error) {
-  return error instanceof Error && error.message.includes("thumbnail_photo");
-}
-
-async function fetchSharedRestaurantRows(includeThumbnailPhoto) {
+async function fetchSharedRestaurantRows() {
   const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurants`);
   const selectedColumns = [
     "id",
@@ -775,10 +746,6 @@ async function fetchSharedRestaurantRows(includeThumbnailPhoto) {
     "photos",
     "created_at",
   ];
-
-  if (includeThumbnailPhoto) {
-    selectedColumns.splice(selectedColumns.indexOf("photos"), 0, "thumbnail_photo");
-  }
 
   endpoint.searchParams.set("select", selectedColumns.join(","));
   endpoint.searchParams.set("status", "eq.approved");
@@ -800,23 +767,10 @@ async function loadSharedRestaurants() {
   }
 
   try {
-    const rows = await fetchSharedRestaurantRows(true);
+    const rows = await fetchSharedRestaurantRows();
     sharedRestaurants.splice(0, sharedRestaurants.length, ...rows.map(normalizeRestaurant));
     refreshRestaurants();
   } catch (error) {
-    if (isMissingThumbnailColumnError(error)) {
-      try {
-        const rows = await fetchSharedRestaurantRows(false);
-        sharedRestaurants.splice(0, sharedRestaurants.length, ...rows.map(normalizeRestaurant));
-        refreshRestaurants();
-        registrationMessage.textContent = "Run the latest Supabase setup SQL to enable saved card thumbnails.";
-        return;
-      } catch (fallbackError) {
-        registrationMessage.textContent = `${fallbackError.message} You can still save places on this browser.`;
-        return;
-      }
-    }
-
     registrationMessage.textContent = `${error.message} You can still save places on this browser.`;
   }
 }
@@ -866,14 +820,13 @@ function showExistingThumbnailPicker(restaurant) {
     return;
   }
 
-  const candidates = photos.map((photo) => ({
+  const candidates = photos.map((photo, index) => ({
     type: "existing",
+    index,
     photo,
     previewUrl: photo,
   }));
-  selectedThumbnailCandidate = candidates.find(
-    (candidate) => candidate.photo === restaurant.thumbnailPhoto,
-  ) || candidates[0];
+  selectedThumbnailCandidate = candidates[0];
   renderThumbnailPicker(candidates, "Choose the photo shown on this restaurant card.");
 }
 
@@ -905,27 +858,27 @@ function showNewThumbnailPicker(fileList) {
 
 function getThumbnailSelection() {
   return {
-    thumbnailPhoto:
-      selectedThumbnailCandidate?.type === "existing"
-        ? selectedThumbnailCandidate.photo
-        : "",
+    thumbnailSource: selectedThumbnailCandidate?.type || "",
     thumbnailIndex:
-      selectedThumbnailCandidate?.type === "new"
+      Number.isInteger(selectedThumbnailCandidate?.index)
         ? selectedThumbnailCandidate.index
         : 0,
   };
 }
 
-function resolveThumbnailPhoto(restaurant, uploadedPhotos) {
-  if (uploadedPhotos.length > 0) {
-    const thumbnailIndex = Math.min(
-      Math.max(Number(restaurant.thumbnailIndex) || 0, 0),
-      uploadedPhotos.length - 1,
-    );
-    return uploadedPhotos[thumbnailIndex];
+function reorderPhotosForThumbnail(photos, thumbnailIndex) {
+  const validPhotos = normalizePhotos(photos);
+
+  if (validPhotos.length === 0) {
+    return [];
   }
 
-  return isSafeImageUrl(restaurant.thumbnailPhoto) ? restaurant.thumbnailPhoto : "";
+  const selectedIndex = Math.min(
+    Math.max(Number(thumbnailIndex) || 0, 0),
+    validPhotos.length - 1,
+  );
+  const [thumbnailPhoto] = validPhotos.splice(selectedIndex, 1);
+  return [thumbnailPhoto, ...validPhotos];
 }
 
 function openRestaurantForm() {
@@ -995,14 +948,17 @@ function setSubmitting(isSubmitting) {
 }
 
 function saveEditedRestaurant(targetRestaurant, restaurant) {
-  const updatedPhotos = restaurant.photos.length > 0 ? restaurant.photos : targetRestaurant.photos;
+  const updatedPhotos = restaurant.photos.length > 0
+    ? reorderPhotosForThumbnail(restaurant.photos, restaurant.thumbnailIndex)
+    : restaurant.thumbnailSource === "existing"
+      ? reorderPhotosForThumbnail(targetRestaurant.photos, restaurant.thumbnailIndex)
+      : targetRestaurant.photos;
   const updatedRestaurant = normalizeRestaurant({
     ...targetRestaurant,
     ...restaurant,
     id: targetRestaurant.id,
     mapLink: "",
     mapLinkLabel: "",
-    thumbnailPhoto: resolveThumbnailPhoto(restaurant, updatedPhotos),
     photos: updatedPhotos,
   });
   const savedIndex = savedRestaurants.findIndex(
