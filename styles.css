@@ -518,9 +518,8 @@ footer {
   -webkit-line-clamp: 2;
 }
 
-.restaurant-detail-address dd {
-  min-height: 4.4em;
-  -webkit-line-clamp: 4;
+.restaurant-detail-address {
+  grid-column: 1 / -1;
 }
 
 .restaurant-notes {
