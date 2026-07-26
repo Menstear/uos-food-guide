@@ -196,6 +196,26 @@ async function getResponseError(response, fallbackMessage) {
   return new Error(fallbackMessage);
 }
 
+function getRestaurantIdentity(restaurant) {
+  return [restaurant.name, restaurant.address]
+    .map((value) => String(value || "").trim().toLocaleLowerCase())
+    .join("|");
+}
+
+function hidePhotoLessDuplicates(restaurantList) {
+  const identitiesWithPhotos = new Set(
+    restaurantList
+      .filter((restaurant) => normalizePhotos(restaurant.photos).length > 0)
+      .map(getRestaurantIdentity),
+  );
+
+  // Prefer the community entry when it supplies a photo for the same place.
+  return restaurantList.filter((restaurant) => {
+    return normalizePhotos(restaurant.photos).length > 0
+      || !identitiesWithPhotos.has(getRestaurantIdentity(restaurant));
+  });
+}
+
 function refreshRestaurants() {
   const restaurantsById = new Map();
   const fallbackRestaurants = sharedConfig.enabled ? [] : publishedRestaurants;
@@ -205,7 +225,11 @@ function refreshRestaurants() {
     restaurantsById.set(normalizedRestaurant.id, normalizedRestaurant);
   });
 
-  restaurants.splice(0, restaurants.length, ...restaurantsById.values());
+  restaurants.splice(
+    0,
+    restaurants.length,
+    ...hidePhotoLessDuplicates([...restaurantsById.values()]),
+  );
   renderRestaurants();
 }
 

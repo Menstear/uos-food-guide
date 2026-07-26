@@ -257,6 +257,7 @@ footer {
 
 .restaurant-grid {
   display: flex;
+  align-items: flex-start;
   gap: 14px;
   overflow-x: auto;
   padding: 4px 4px 14px;
@@ -338,15 +339,15 @@ footer {
 .restaurant-photo {
   display: block;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
 }
 
 .photo-count {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 5px 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px 6px;
   background: rgba(24, 33, 30, 0.82);
   color: var(--white);
   font-family: "Trebuchet MS", Verdana, sans-serif;
@@ -356,9 +357,9 @@ footer {
 
 .restaurant-photo-placeholder {
   display: grid;
-  min-height: 174px;
+  min-height: 130px;
   place-items: center;
-  padding: 18px;
+  padding: 14px;
   background:
     linear-gradient(135deg, rgba(76, 111, 82, 0.9), rgba(24, 33, 30, 0.92)),
     var(--charcoal);
@@ -372,14 +373,14 @@ footer {
 
 .restaurant-card-content {
   display: flex;
-  min-height: 206px;
+  min-height: 156px;
   flex: 1;
   flex-direction: column;
-  padding: 18px;
+  padding: 14px;
 }
 
 .card-label {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--tomato);
   font-family: "Trebuchet MS", Verdana, sans-serif;
   font-size: 0.67rem;
@@ -389,13 +390,17 @@ footer {
 }
 
 .restaurant-name {
-  margin-bottom: 14px;
-  font-size: 1.25rem;
+  display: -webkit-box;
+  margin-bottom: 10px;
+  overflow: hidden;
+  font-size: 1.12rem;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .restaurant-details {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin: 0;
 }
 
@@ -409,15 +414,23 @@ footer {
 }
 
 .restaurant-details dd {
+  display: -webkit-box;
+  overflow: hidden;
   font-size: 0.82rem;
   line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .restaurant-notes {
-  margin: 14px 0 10px;
+  display: -webkit-box;
+  margin: 10px 0 6px;
+  overflow: hidden;
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .map-link {
@@ -438,7 +451,7 @@ footer {
   justify-content: space-between;
   gap: 10px;
   margin-top: auto;
-  padding-top: 14px;
+  padding-top: 10px;
 }
 
 .delete-restaurant-button {
