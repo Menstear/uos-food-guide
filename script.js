@@ -666,7 +666,26 @@ async function submitCommunityRestaurant(restaurant) {
   }
 }
 
+async function ensureRestaurantEditSuggestionsTableExists() {
+  const endpoint = new URL(`${sharedConfig.url}/rest/v1/restaurant_edit_suggestions`);
+  endpoint.searchParams.set("select", "id");
+  endpoint.searchParams.set("limit", "1");
+  const response = await fetch(endpoint, { headers: getSharedHeaders() });
+
+  if (response.status === 404) {
+    throw new Error(
+      "Restaurant edits are not enabled yet. Ask the site owner to run the latest Supabase setup SQL.",
+    );
+  }
+
+  if (!response.ok) {
+    throw await getResponseError(response, "Restaurant edits could not be checked.");
+  }
+}
+
 async function submitRestaurantEditSuggestion(targetRestaurant, restaurant) {
+  await ensureRestaurantEditSuggestionsTableExists();
+
   const suggestionId = createRestaurantId();
   const photoUrls = restaurant.photos.length > 0
     ? await uploadCommunityPhotos(suggestionId, restaurant.photos)
