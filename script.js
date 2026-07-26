@@ -55,7 +55,6 @@ let thumbnailPreviewUrls = [];
 const restaurantFields = [
   ["Address", "address"],
   ["Best for", "bestFor"],
-  ["Price range", "priceRange"],
   ["Walking time", "walkingTime"],
   ["Visitor-friendly", "foreignerFriendly"],
 ];
@@ -148,15 +147,22 @@ function getNaverMapLink(restaurant) {
   try {
     const existingUrl = new URL(existingLink);
 
-    if (existingUrl.hostname === "map.naver.com" || existingUrl.hostname.endsWith(".naver.com")) {
+    if (
+      (existingUrl.hostname === "map.naver.com" || existingUrl.hostname.endsWith(".naver.com")) &&
+      !existingUrl.pathname.includes("/p/search/")
+    ) {
       return existingUrl.toString();
     }
   } catch {
-    // Build a Naver Map search URL when no valid Naver Map place link is stored.
+    // Build a Naver Map search URL when no valid direct Naver Map place link is stored.
   }
 
-  const query = [restaurant.name, restaurant.address]
-    .filter((value) => typeof value === "string" && value.trim())
+  const name = String(restaurant.name || "").trim();
+  const address = String(restaurant.address || "").trim();
+  const koreanName = name.match(/\(([^()]*[가-힣][^()]*)\)/)?.[1]?.trim();
+  const koreanAddress = address.match(/[가-힣][가-힣0-9\s-]*/)?.[0]?.trim();
+  const query = [koreanName || name, koreanAddress]
+    .filter(Boolean)
     .join(" ");
 
   return query ? `https://map.naver.com/p/search/${encodeURIComponent(query)}` : "";
