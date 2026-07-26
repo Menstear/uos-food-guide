@@ -262,29 +262,65 @@ footer {
   gap: 14px;
   height: 430px;
   width: 100%;
-  overflow-x: scroll;
+  overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   padding: 4px 4px 14px;
   scroll-padding-inline: 4px;
   scroll-snap-type: x proximity;
-  scrollbar-color: var(--tomato) transparent;
-  scrollbar-gutter: stable;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   touch-action: pan-x;
 }
 
 .restaurant-grid::-webkit-scrollbar {
-  height: 10px;
+  display: none;
 }
 
-.restaurant-grid::-webkit-scrollbar-track {
+.restaurant-scrollbar {
+  display: block;
+  width: calc(100% - 8px);
+  height: 18px;
+  margin: 2px 4px 0;
+  appearance: none;
+  background: transparent;
+  cursor: ew-resize;
+}
+
+.restaurant-scrollbar::-webkit-slider-runnable-track {
+  height: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
   background: rgba(217, 208, 194, 0.58);
 }
 
-.restaurant-grid::-webkit-scrollbar-thumb {
+.restaurant-scrollbar::-webkit-slider-thumb {
+  width: 42px;
+  height: 13px;
+  margin-top: -4px;
+  appearance: none;
+  border: 1px solid var(--tomato);
   border-radius: 999px;
   background: var(--tomato);
+}
+
+.restaurant-scrollbar::-moz-range-track {
+  height: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(217, 208, 194, 0.58);
+}
+
+.restaurant-scrollbar::-moz-range-thumb {
+  width: 40px;
+  height: 11px;
+  border: 1px solid var(--tomato);
+  border-radius: 999px;
+  background: var(--tomato);
+}
+
+.restaurant-scrollbar:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .restaurant-groups {

@@ -43,7 +43,9 @@ const publishedRestaurants = Array.isArray(window.uosRestaurants) ? window.uosRe
 const sharedRestaurants = [];
 const savedRestaurants = loadSavedRestaurants();
 const restaurants = [];
+const restaurantRailScrollbars = new WeakMap();
 let editingRestaurant = null;
+let restaurantRailResizeObserver = null;
 
 const restaurantFields = [
   ["Address", "address"],
@@ -357,7 +359,26 @@ function createRestaurantCard(restaurant) {
   return card;
 }
 
+function syncRestaurantRailScrollbar(areaGrid) {
+  const scrollbar = restaurantRailScrollbars.get(areaGrid);
+
+  if (!scrollbar) {
+    return;
+  }
+
+  const maximumScrollLeft = Math.max(0, areaGrid.scrollWidth - areaGrid.clientWidth);
+  scrollbar.max = String(maximumScrollLeft);
+  scrollbar.value = String(Math.min(Math.max(areaGrid.scrollLeft, 0), maximumScrollLeft));
+  scrollbar.disabled = maximumScrollLeft === 0;
+}
+
 function renderRestaurants() {
+  restaurantRailResizeObserver?.disconnect();
+  restaurantRailResizeObserver = typeof ResizeObserver === "function"
+    ? new ResizeObserver((entries) => {
+      entries.forEach((entry) => syncRestaurantRailScrollbar(entry.target));
+    })
+    : null;
   restaurantGroups.replaceChildren();
   restaurantCount.textContent = String(restaurants.length);
 
@@ -379,6 +400,7 @@ function renderRestaurants() {
     );
     const areaGrid = document.createElement("div");
     areaGrid.className = "restaurant-grid";
+    let horizontalScrollbar = null;
 
     const areaMeta = document.createElement("div");
     areaMeta.className = "area-meta";
@@ -458,9 +480,32 @@ function renderRestaurants() {
       nextButton.addEventListener("click", () => scrollCards(1));
       controls.append(previousButton, nextButton);
       areaMeta.append(controls);
+
+      horizontalScrollbar = document.createElement("input");
+      horizontalScrollbar.className = "restaurant-scrollbar";
+      horizontalScrollbar.type = "range";
+      horizontalScrollbar.min = "0";
+      horizontalScrollbar.max = "0";
+      horizontalScrollbar.value = "0";
+      horizontalScrollbar.step = "1";
+      horizontalScrollbar.setAttribute("aria-label", `Scroll ${area.label} restaurants`);
+      restaurantRailScrollbars.set(areaGrid, horizontalScrollbar);
+      areaGrid.addEventListener("scroll", () => syncRestaurantRailScrollbar(areaGrid), {
+        passive: true,
+      });
+      horizontalScrollbar.addEventListener("input", () => {
+        areaGrid.scrollLeft = Number(horizontalScrollbar.value);
+      });
+      restaurantRailResizeObserver?.observe(areaGrid);
     }
 
     areaSection.append(heading, areaGrid);
+
+    if (horizontalScrollbar) {
+      areaSection.append(horizontalScrollbar);
+      requestAnimationFrame(() => syncRestaurantRailScrollbar(areaGrid));
+    }
+
     restaurantGroups.append(areaSection);
   });
 }
