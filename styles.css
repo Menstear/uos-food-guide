@@ -260,7 +260,7 @@ footer {
   align-items: flex-start;
   flex-wrap: nowrap;
   gap: 14px;
-  height: 390px;
+  height: 430px;
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
@@ -368,7 +368,7 @@ footer {
   display: flex;
   flex: 0 0 clamp(232px, 24vw, 276px);
   flex-direction: column;
-  height: 364px;
+  height: 404px;
   overflow: hidden;
   scroll-snap-align: start;
 }

@@ -412,6 +412,36 @@ function renderRestaurants() {
         });
       };
 
+      areaGrid.addEventListener(
+        "wheel",
+        (event) => {
+          if (
+            event.shiftKey ||
+            event.deltaY === 0 ||
+            areaGrid.scrollWidth <= areaGrid.clientWidth
+          ) {
+            return;
+          }
+
+          const maximumScrollLeft = areaGrid.scrollWidth - areaGrid.clientWidth;
+          const nextScrollLeft = areaGrid.scrollLeft + event.deltaY;
+          const canScrollInDirection =
+            (event.deltaY < 0 && areaGrid.scrollLeft > 0) ||
+            (event.deltaY > 0 && areaGrid.scrollLeft < maximumScrollLeft);
+
+          if (!canScrollInDirection) {
+            return;
+          }
+
+          event.preventDefault();
+          areaGrid.scrollLeft = Math.min(
+            Math.max(nextScrollLeft, 0),
+            maximumScrollLeft,
+          );
+        },
+        { passive: false },
+      );
+
       previousButton.addEventListener("click", () => scrollCards(-1));
       nextButton.addEventListener("click", () => scrollCards(1));
       controls.append(previousButton, nextButton);
