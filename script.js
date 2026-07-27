@@ -57,8 +57,18 @@ const savedRestaurants = loadSavedRestaurants();
 const restaurants = [];
 const restaurantRailScrollbars = new WeakMap();
 const knownNaverPlaceLinks = {
-  // The current community record for Isaac Toast is the UOS branch.
+  // Verified direct Naver Map place pages for the current public restaurant list.
+  "2f33210e-d4ea-43a9-9c0e-5fd9317d2078": "https://map.naver.com/p/entry/place/1075759585",
+  "0c11c3d1-ac11-4c28-87c6-feba544cc745": "https://map.naver.com/p/entry/place/2041450172",
+  "16f7575a-9812-4b5b-8f7a-ff97398b4ce0": "https://map.naver.com/p/entry/place/31744096",
+  "34c70582-7b03-4e6a-be76-628085cace72": "https://map.naver.com/p/entry/place/20923317",
+  "4dc21fc7-98ea-4c7a-8348-bef205f7588f": "https://map.naver.com/p/entry/place/1082353698",
+  "611ba448-81a7-4345-a4a6-81cb2a7670db": "https://map.naver.com/p/entry/place/1606902512",
+  "151003fa-b5bd-42f6-8b7d-1ffafa002a10": "https://map.naver.com/p/entry/place/36215494",
+  "195bd893-f3fc-43d6-8017-d17b7787b657": "https://map.naver.com/p/entry/place/37026590",
+  "a6efc6a3-0f9b-47a5-adf9-59f910aaf10e": "https://map.naver.com/p/entry/place/1616849156",
   "c90a3841-9865-4317-9093-bb35d8a350df": "https://map.naver.com/p/entry/place/1245357059",
+  "b1859931-23f7-4ea3-b444-369ca6623b11": "https://map.naver.com/p/entry/place/36727976",
 };
 let editingRestaurant = null;
 let restaurantRailResizeObserver = null;
@@ -158,6 +168,12 @@ function isSafeMapUrl(value) {
 }
 
 function getNaverMapLink(restaurant) {
+  const knownPlaceLink = knownNaverPlaceLinks[restaurant.id];
+
+  if (knownPlaceLink) {
+    return knownPlaceLink;
+  }
+
   const existingLink = restaurant.mapLink || restaurant.googleMapsLink || "";
 
   try {
@@ -170,24 +186,10 @@ function getNaverMapLink(restaurant) {
       return existingUrl.toString();
     }
   } catch {
-    // Build a Naver Map search URL when no valid direct Naver Map place link is stored.
+    // Keep the map action hidden until a direct Naver Map place link is verified.
   }
 
-  const knownPlaceLink = knownNaverPlaceLinks[restaurant.id];
-
-  if (knownPlaceLink) {
-    return knownPlaceLink;
-  }
-
-  const name = String(restaurant.name || "").trim();
-  const address = String(restaurant.address || "").trim();
-  const koreanName = name.match(/\(([^()]*[가-힣][^()]*)\)/)?.[1]?.trim();
-  const koreanAddress = address.match(/[가-힣][가-힣0-9\s-]*/)?.[0]?.trim();
-  const query = [koreanName || name, koreanAddress]
-    .filter(Boolean)
-    .join(" ");
-
-  return query ? `https://map.naver.com/p/search/${encodeURIComponent(query)}` : "";
+  return "";
 }
 
 function isSafeImageUrl(value) {
