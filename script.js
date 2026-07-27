@@ -70,6 +70,9 @@ const knownNaverPlaceLinks = {
   "c90a3841-9865-4317-9093-bb35d8a350df": "https://map.naver.com/p/entry/place/1245357059",
   "b1859931-23f7-4ea3-b444-369ca6623b11": "https://map.naver.com/p/entry/place/36727976",
 };
+const shortAddressOverrides = {
+  "c90a3841-9865-4317-9093-bb35d8a350df": "160 Seoulsirip-daero",
+};
 let editingRestaurant = null;
 let restaurantRailResizeObserver = null;
 let selectedThumbnailCandidate = null;
@@ -115,6 +118,21 @@ function normalizePhotos(photos) {
 
 function normalizeArea(area) {
   return restaurantAreaIds.has(area) ? area : "main-gate";
+}
+
+function getShortAddress(restaurant) {
+  const override = shortAddressOverrides[restaurant.id];
+
+  if (override) {
+    return override;
+  }
+
+  return String(restaurant.address || "")
+    .trim()
+    .replace(/^\d+F,?\s*/i, "")
+    .replace(/^서울(?:특별시)?\s+동대문구\s+/, "")
+    .replace(/,\s*Dongdaemun-gu,\s*Seoul\s*$/i, "")
+    .replace(/\s+\d+F$/i, "");
 }
 
 function normalizeRestaurant(restaurant) {
@@ -336,7 +354,7 @@ function createRestaurantCard(restaurant) {
   details.className = "restaurant-details";
 
   restaurantFields.forEach(([label, key]) => {
-    const value = restaurant[key];
+    const value = key === "address" ? getShortAddress(restaurant) : restaurant[key];
 
     if (!value) {
       return;
